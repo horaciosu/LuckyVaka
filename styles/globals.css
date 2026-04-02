@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:ital,wght@0,600;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+
+  --brand:        #1D9E75;
+  --brand-light:  #E1F5EE;
+  --brand-dark:   #0F6E56;
+
+  --bg:           #FAFAF8;
+  --surface:      #FFFFFF;
+  --border:       #E8E6E0;
+  --text:         #1A1916;
+  --muted:        #6B6860;
+  --subtle:       #9B9890;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+body { margin: 0; }
+
+/* Utility classes */
+.font-display { font-family: var(--font-display); }
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.btn-primary:hover { background: var(--brand-dark); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.btn-secondary:hover { background: #F4F3EF; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.progress-bar {
+  height: 5px;
+  background: #EEECE8;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--brand);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+/* Countdown numbers */
+.countdown-digit {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1;
+}
+
+/* Ticket number chip */
+.ticket-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: #F4F3EF;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: var(--font-body);
+}
+.ticket-chip:hover:not(.taken) { border-color: var(--brand); color: var(--brand); }
+.ticket-chip.selected { background: var(--brand); color: #fff; border-color: var(--brand); }
+.ticket-chip.taken { opacity: 0.3; cursor: not-allowed; text-decoration: line-through; }
+
+/* Live dot */
+.live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #E24B4A;
+  animation: pulse-dot 1.2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* Drum roll number */
+.drum-number {
+  font-family: var(--font-display);
+  font-size: 72px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 8px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
