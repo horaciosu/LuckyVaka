@@ -71,7 +71,7 @@ export default function Login({ lang, setLang }) {
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ fontSize: 40, marginBottom: 10 }}>🌊</div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
-            {t('Welcome back', 'Bienvenido de vuelta')}
+            {t('Welcome to Lucky Vaka', 'Bienvenido a Lucky Vaka')}
           </h1>
           <p style={{ fontSize: 14, color: 'var(--muted)' }}>
             {t("Don't have an account?", '¿No tienes cuenta?')}{' '}
