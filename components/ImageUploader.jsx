@@ -42,7 +42,7 @@ export default function ImageUploader({ propertyId, onUploadComplete, lang = 'en
     setUploading(true)
     const newImages = []
 
-    for (const file of Array.from(files).slice(0, 10)) {
+    for (const file of Array.from(files).slice(0, 30)) {
       const url = await uploadFile(file)
       if (url) newImages.push(url)
     }
