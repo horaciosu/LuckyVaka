@@ -13,6 +13,8 @@ export default function SignUp({ lang, setLang }) {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
+  const [showPass, setShowPass] = useState(false)
+
   const t = (en, es) => lang === 'es' ? es : en
   const update = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: false })) }
 
@@ -155,7 +157,7 @@ export default function SignUp({ lang, setLang }) {
 
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 5 }}>{t('Full name', 'Nombre completo')} *</label>
-              <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Juan Pérez" style={inputStyle('name')} />
+              <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Horacio Soria" style={inputStyle('name')} />
             </div>
 
             <div style={{ marginBottom: 14 }}>
@@ -165,12 +167,22 @@ export default function SignUp({ lang, setLang }) {
 
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 5 }}>{t('Password', 'Contraseña')} * <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 400 }}>(min. 6 {t('characters', 'caracteres')})</span></label>
-              <input type="password" value={form.password} onChange={e => update('password', e.target.value)} placeholder="••••••••" style={inputStyle('password')} />
+              <div style={{ position: 'relative' }}>
+                <input type={showPass ? 'text' : 'password'} value={form.password} onChange={e => update('password', e.target.value)} placeholder="••••••••" style={{ ...inputStyle('password'), paddingRight: 40 }} />
+                <button type="button" onClick={() => setShowPass(s => !s)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--muted)' }}>
+                  {showPass ? '🙈' : '👁'}
+                </button>
+              </div>
             </div>
 
             <div style={{ marginBottom: 20 }}>
               <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 5 }}>{t('Confirm password', 'Confirmar contraseña')} *</label>
-              <input type="password" value={form.confirm} onChange={e => update('confirm', e.target.value)} placeholder="••••••••" style={inputStyle('confirm')} />
+              <div style={{ position: 'relative' }}>
+                <input type={showPass ? 'text' : 'password'} value={form.confirm} onChange={e => update('confirm', e.target.value)} placeholder="••••••••" style={{ ...inputStyle('confirm'), paddingRight: 40 }} />
+                <button type="button" onClick={() => setShowPass(s => !s)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--muted)' }}>
+                  {showPass ? '🙈' : '👁'}
+                </button>
+              </div>
               {errors.confirm && <div style={{ fontSize: 11, color: '#E24B4A', marginTop: 4 }}>{t('Passwords do not match', 'Las contraseñas no coinciden')}</div>}
             </div>
 

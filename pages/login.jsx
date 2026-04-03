@@ -12,6 +12,7 @@ export default function Login({ lang, setLang }) {
   const [resetSent, setResetSent] = useState(false)
   const [showReset, setShowReset] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
+  const [showPass, setShowPass] = useState(false)
 
   const t = (en, es) => lang === 'es' ? es : en
   const update = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: false })) }
@@ -71,7 +72,7 @@ export default function Login({ lang, setLang }) {
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ fontSize: 40, marginBottom: 10 }}>🌊</div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
-            {t('Welcome to Lucky Vaka', 'Bienvenido a Lucky Vaka')}
+            {t('Welcome back', 'Bienvenido de vuelta')}
           </h1>
           <p style={{ fontSize: 14, color: 'var(--muted)' }}>
             {t("Don't have an account?", '¿No tienes cuenta?')}{' '}
@@ -105,13 +106,18 @@ export default function Login({ lang, setLang }) {
                   {t('Forgot password?', '¿Olvidaste tu contraseña?')}
                 </button>
               </div>
-              <input
-                type="password" value={form.password}
-                onChange={e => update('password', e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="••••••••"
-                style={inputStyle('password')}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPass ? 'text' : 'password'} value={form.password}
+                  onChange={e => update('password', e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="••••••••"
+                  style={{ ...inputStyle('password'), paddingRight: 40 }}
+                />
+                <button type="button" onClick={() => setShowPass(s => !s)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--muted)' }}>
+                  {showPass ? '🙈' : '👁'}
+                </button>
+              </div>
             </div>
 
             {errors.submit && (
