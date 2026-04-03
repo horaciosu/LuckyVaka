@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import Navbar from '../components/Navbar'
 import ImageUploader from '../components/ImageUploader'
+import { CURRENCIES } from '../lib/data'
 
 export default function HostPage({ lang, setLang }) {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [ticketPrice, setTicketPrice] = useState(5)
   const [totalTickets, setTotalTickets] = useState(300)
   const [minPct, setMinPct] = useState(50)
+  const [currency, setCurrency] = useState('USD')
 
   const gross = ticketPrice * totalTickets
   const comm = gross * 0.18
@@ -150,11 +152,23 @@ export default function HostPage({ lang, setLang }) {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Ticket price (USD) *</label>
+                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Ticket price *</label>
                   <input type="number" value={ticketPrice} onChange={e => setTicketPrice(+e.target.value)} min={1}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', outline: 'none' }} />
-                  <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 3 }}>Min $1 · Recommended $5–$20</div>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 3 }}>Min 1 · Recommended 5–20</div>
                 </div>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
+                    {lang === 'es' ? 'Moneda' : 'Currency'} *
+                  </label>
+                  <select value={currency} onChange={e => setCurrency(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }}>
+                    {CURRENCIES.map(c => (
+                      <option key={c.code} value={c.code}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Total tickets *</label>
                   <input type="number" value={totalTickets} onChange={e => setTotalTickets(+e.target.value)} min={10}
@@ -187,14 +201,14 @@ export default function HostPage({ lang, setLang }) {
                 💰 {lang === 'es' ? 'Estimado de pago (si se venden todos)' : 'Estimated payout (if fully sold)'}
               </div>
               {[
-                ['Gross sales', `$${gross.toFixed(2)}`],
-                ['Platform commission (18%)', `-$${comm.toFixed(2)}`],
-                ['Insurance & ops (5%)', `-$${ins.toFixed(2)}`],
+                [lang === 'es' ? 'Venta total' : 'Gross sales', `${gross.toFixed(2)} ${currency}`],
+                ['Platform commission (18%)', `-${comm.toFixed(2)} ${currency}`],
+                ['Insurance & ops (5%)', `-${ins.toFixed(2)} ${currency}`],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--brand-dark)', marginBottom: 4 }}><span>{k}</span><span>{v}</span></div>
               ))}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, color: 'var(--brand-dark)', borderTop: '1px solid #9FE1CB', paddingTop: 8, marginTop: 4 }}>
-                <span>{lang === 'es' ? 'Tú recibes' : 'You receive'}</span><span>${net.toFixed(2)}</span>
+                <span>{lang === 'es' ? 'Tú recibes' : 'You receive'}</span><span>{net.toFixed(2)} {currency}</span>
               </div>
             </div>
 
