@@ -27,6 +27,8 @@ export default function Navbar({ lang, setLang }) {
   const initials = user?.user_metadata?.full_name
     ?.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || '?'
 
+  const ADMIN_EMAIL = 'horaciosoriau@gmail.com'
+  const isAdmin = user?.email === ADMIN_EMAIL
   const role = user?.user_metadata?.role
 
   return (
@@ -50,7 +52,7 @@ export default function Navbar({ lang, setLang }) {
         <Link href="/raffles" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
           {lang === 'en' ? 'Explore' : 'Explorar'}
         </Link>
-        <Link href="/login" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
+        <Link href="/host-register" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
           {lang === 'en' ? 'List property' : 'Anfitrión'}
         </Link>
 
@@ -91,6 +93,16 @@ export default function Navbar({ lang, setLang }) {
                     {role === 'host' ? (lang === 'es' ? 'Anfitrión' : 'Host') : (lang === 'es' ? 'Viajero' : 'Traveler')}
                   </div>
                 </div>
+                {isAdmin && (
+                  <Link href="/admin" onClick={() => setMenuOpen(false)} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '9px 14px', fontSize: 13, color: '#A32D2D',
+                    textDecoration: 'none', borderBottom: '1px solid var(--border)',
+                    background: '#FCEBEB',
+                  }}>
+                    <span>🔐</span> Admin panel
+                  </Link>
+                )}
                 {[
                   role === 'host'
                     ? { href: '/host', label: lang === 'es' ? 'Panel anfitrión' : 'Host panel', icon: '🏡' }
