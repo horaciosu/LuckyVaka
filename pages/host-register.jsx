@@ -426,47 +426,133 @@ Enviado desde luckyvaka.com
 
         {/* STEP 4 — Review */}
         {step === 4 && (
-          <div className="card">
-            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 18, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
-              ✅ {t('Review your application', 'Revisa tu solicitud')}
-            </div>
-            {[
-              ['👤 ' + t('Personal', 'Personal'), [
-                [t('Name', 'Nombre'), form.full_name],
-                ['Email', form.email],
-                [t('Phone', 'Teléfono'), form.phone],
-                [t('Country', 'País'), form.country],
-                ['ID', form.id_type],
-              ]],
-              ['🏦 ' + t('Fiscal & banking', 'Fiscal y banco'), [
-                ['RFC / Tax ID', form.rfc || form.tax_id || '—'],
-                [t('Bank', 'Banco'), form.bank_name],
-                ['CLABE', form.clabe],
-                [t('Holder', 'Titular'), form.account_holder],
-              ]],
-              ['🏡 ' + t('Property', 'Propiedad'), [
-                [t('Name', 'Nombre'), form.property_name],
-                [t('Type', 'Tipo'), form.property_type],
-                [t('Address', 'Dirección'), form.address],
-                [t('City', 'Ciudad'), `${form.city}, ${form.state}, ${form.country_prop}`],
-                [t('Beds/Baths/Guests', 'Hab/Baños/Huéspedes'), `${form.beds} / ${form.baths} / ${form.guests}`],
-                [t('Amenities', 'Amenidades'), form.amenities.join(', ') || '—'],
-                [t('Insurance', 'Seguro'), form.has_insurance ? '✓' : '✗'],
-                [t('Deed', 'Escrituras'), form.has_deed ? '✓' : '✗'],
-              ]],
-            ].map(([section, rows]) => (
-              <div key={section} style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>{section}</div>
-                {rows.map(([k, v]) => (
-                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px solid var(--border)', color: 'var(--muted)' }}>
-                    <span>{k}</span>
-                    <span style={{ color: 'var(--text)', maxWidth: '60%', textAlign: 'right' }}>{v || '—'}</span>
+          <div>
+            {/* Folio number */}
+            <div className="card" style={{ marginBottom: 14, background: 'var(--brand-light)', border: '1px solid #9FE1CB' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-dark)', marginBottom: 2 }}>
+                    🔖 {t('Your application folio', 'Folio de tu solicitud')}
                   </div>
-                ))}
+                  <div style={{ fontSize: 11, color: 'var(--brand-dark)', opacity: 0.8 }}>
+                    {t('Include this number in your email subject when sending documents.', 'Incluye este número en el asunto de tu email al enviar documentos.')}
+                  </div>
+                </div>
+                <div style={{
+                  fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600,
+                  color: 'var(--brand-dark)', background: '#fff',
+                  padding: '8px 16px', borderRadius: 8, border: '1px solid #9FE1CB',
+                  letterSpacing: 2,
+                }}>
+                  LV-{form.full_name.replace(/\s/g,'').substring(0,3).toUpperCase() || 'XXX'}-{Date.now().toString().slice(-5)}
+                </div>
               </div>
-            ))}
-            <div style={{ background: 'var(--brand-light)', borderRadius: 8, padding: '10px 12px', fontSize: 11, color: 'var(--brand-dark)', marginTop: 8 }}>
-              📎 {t('After submitting, send your ID and property documents to', 'Después de enviar, manda tu identificación y documentos de propiedad a')} <strong>luckyvaka.hola@gmail.com</strong>
+            </div>
+
+            {/* Data summary */}
+            <div className="card" style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 18, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+                ✅ {t('Review your application', 'Revisa tu solicitud')}
+              </div>
+              {[
+                ['👤 ' + t('Personal', 'Personal'), [
+                  [t('Name', 'Nombre'), form.full_name],
+                  ['Email', form.email],
+                  [t('Phone', 'Teléfono'), form.phone],
+                  [t('Country', 'País'), form.country],
+                  ['ID', form.id_type],
+                ]],
+                ['🏦 ' + t('Fiscal & banking', 'Fiscal y banco'), [
+                  ['RFC / Tax ID', form.rfc || form.tax_id || '—'],
+                  [t('Bank', 'Banco'), form.bank_name],
+                  ['CLABE', form.clabe],
+                  [t('Holder', 'Titular'), form.account_holder],
+                ]],
+                ['🏡 ' + t('Property', 'Propiedad'), [
+                  [t('Name', 'Nombre'), form.property_name],
+                  [t('Type', 'Tipo'), form.property_type],
+                  [t('Address', 'Dirección'), form.address],
+                  [t('City', 'Ciudad'), `${form.city}, ${form.state}, ${form.country_prop}`],
+                  [t('Beds/Baths/Guests', 'Hab/Baños/Huéspedes'), `${form.beds} / ${form.baths} / ${form.guests}`],
+                  [t('Amenities', 'Amenidades'), form.amenities.join(', ') || '—'],
+                  [t('Insurance', 'Seguro'), form.has_insurance ? '✓' : '✗'],
+                  [t('Deed', 'Escrituras'), form.has_deed ? '✓' : '✗'],
+                ]],
+              ].map(([section, rows]) => (
+                <div key={section} style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>{section}</div>
+                  {rows.map(([k, v]) => (
+                    <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px solid var(--border)', color: 'var(--muted)' }}>
+                      <span>{k}</span>
+                      <span style={{ color: 'var(--text)', maxWidth: '60%', textAlign: 'right' }}>{v || '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {/* Document checklist */}
+            <div className="card" style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
+                📎 {t('Required documents — send by email', 'Documentos requeridos — enviar por email')}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, lineHeight: 1.6 }}>
+                {t(
+                  'After submitting this form, send the following documents to verify your identity and property ownership:',
+                  'Después de enviar este formulario, manda los siguientes documentos para verificar tu identidad y propiedad:'
+                )}
+              </div>
+              {[
+                { icon: '🪪', label: t('Official ID — both sides (INE, passport or driver\'s license)', 'Identificación oficial — ambos lados (INE, pasaporte o licencia)'), required: true },
+                { icon: '🏠', label: t('Property deed or title / Escrituras o título de propiedad', 'Escrituras o título de propiedad'), required: true },
+                { icon: '📋', label: t('Tax registration / Constancia de situación fiscal (RFC)', 'Constancia de situación fiscal (RFC)'), required: form.country === 'México' },
+                { icon: '🛡', label: t('Property insurance policy (if available)', 'Póliza de seguro de la propiedad (si aplica)'), required: false },
+                { icon: '📸', label: t('Additional property photos (optional)', 'Fotos adicionales de la propiedad (opcional)'), required: false },
+              ].map((doc, i) => (
+                <div key={i} style={{
+                  display: 'flex', gap: 10, alignItems: 'flex-start',
+                  padding: '8px 0', borderBottom: i < 4 ? '1px solid var(--border)' : 'none',
+                }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>{doc.icon}</span>
+                  <div style={{ flex: 1, fontSize: 12, color: 'var(--text)', lineHeight: 1.5 }}>
+                    {doc.label}
+                  </div>
+                  <span style={{
+                    fontSize: 10, padding: '2px 7px', borderRadius: 10, flexShrink: 0,
+                    background: doc.required ? '#FCEBEB' : 'var(--bg)',
+                    color: doc.required ? '#A32D2D' : 'var(--muted)',
+                    border: `1px solid ${doc.required ? '#F7C1C1' : 'var(--border)'}`,
+                  }}>
+                    {doc.required ? t('Required', 'Requerido') : t('Optional', 'Opcional')}
+                  </span>
+                </div>
+              ))}
+
+              {/* Email button */}
+              <div style={{ marginTop: 14, padding: '12px 14px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
+                  {t('Send documents to:', 'Envía los documentos a:')}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                    luckyvaka.hola@gmail.com
+                  </div>
+                  <a
+                    href={`mailto:luckyvaka.hola@gmail.com?subject=Documentos anfitrión LV-${form.full_name.replace(/\s/g,'').substring(0,3).toUpperCase() || 'XXX'}-${Date.now().toString().slice(-5)}&body=Hola equipo Lucky Vaka,%0A%0AAdjunto mis documentos para verificación.%0A%0ANombre: ${form.full_name}%0APropiedad: ${form.property_name}%0A%0ASaludos`}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      background: 'var(--brand)', color: '#fff',
+                      padding: '7px 14px', borderRadius: 8, fontSize: 12,
+                      textDecoration: 'none', fontWeight: 500,
+                    }}
+                  >
+                    📧 {t('Open email', 'Abrir email')}
+                  </a>
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 6 }}>
+                  {t('The subject line is pre-filled with your folio number so we can match your documents.', 'El asunto viene prellenado con tu número de folio para que podamos vincular tus documentos.')}
+                </div>
+              </div>
             </div>
           </div>
         )}
