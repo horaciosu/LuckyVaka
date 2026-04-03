@@ -150,7 +150,7 @@ export default function HostPage({ lang, setLang }) {
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
                 {lang === 'es' ? 'Configuración de la rifa' : 'Raffle configuration'}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Ticket price *</label>
                   <input type="number" value={ticketPrice} onChange={e => setTicketPrice(+e.target.value)} min={1}
@@ -168,7 +168,6 @@ export default function HostPage({ lang, setLang }) {
                     ))}
                   </select>
                 </div>
-              </div>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Total tickets *</label>
                   <input type="number" value={totalTickets} onChange={e => setTotalTickets(+e.target.value)} min={10}
