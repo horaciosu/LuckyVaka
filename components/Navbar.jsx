@@ -52,7 +52,7 @@ export default function Navbar({ lang, setLang }) {
         <Link href="/raffles" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
           {lang === 'en' ? 'Explore' : 'Explorar'}
         </Link>
-        <Link href="/login" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
+        <Link href="/host-register" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
           {lang === 'en' ? 'List property' : 'Anfitrión'}
         </Link>
 
@@ -107,6 +107,9 @@ export default function Navbar({ lang, setLang }) {
                   role === 'host'
                     ? { href: '/host', label: lang === 'es' ? 'Panel anfitrión' : 'Host panel', icon: '🏡' }
                     : { href: '/dashboard', label: lang === 'es' ? 'Mis boletos' : 'My tickets', icon: '🎟' },
+                  role === 'host'
+                    ? { href: '/my-properties', label: lang === 'es' ? 'Mis propiedades' : 'My properties', icon: '🏠' }
+                    : { href: '/dashboard', label: lang === 'es' ? 'Mi cuenta' : 'My account', icon: '👤' },
                   { href: '/dashboard', label: lang === 'es' ? 'Mi cuenta' : 'My account', icon: '👤' },
                 ].map(item => (
                   <Link key={item.label} href={item.href} onClick={() => setMenuOpen(false)} style={{

@@ -17,6 +17,8 @@ export default function HostPage({ lang, setLang }) {
   const [saveMsg, setSaveMsg] = useState(null)
   const [user, setUser] = useState(null)
   const [myRaffles, setMyRaffles] = useState([])
+  const [myProperties, setMyProperties] = useState([])
+  const [selectedPropertyId, setSelectedPropertyId] = useState('')
   const [loadingRaffles, setLoadingRaffles] = useState(false)
   const [uploadedImages, setUploadedImages] = useState([])
 
@@ -40,8 +42,18 @@ export default function HostPage({ lang, setLang }) {
       const u = data.session?.user
       setUser(u)
       if (!u) router.push('/login')
+      else loadMyProperties(u.id)
     })
   }, [])
+
+  const loadMyProperties = async (uid) => {
+    const { data } = await supabase
+      .from('properties')
+      .select('id, name, city, country, images')
+      .eq('host_id', uid)
+      .eq('status', 'approved')
+    setMyProperties(data || [])
+  }
 
   useEffect(() => {
     if (activeTab === 'raffles' && user) loadMyRaffles()
@@ -68,42 +80,29 @@ export default function HostPage({ lang, setLang }) {
     '-' + Date.now().toString().slice(-5)
 
   const saveRaffle = async (status = 'draft') => {
-    if (!propertyName.trim()) { setSaveMsg({ type: 'error', text: lang === 'es' ? 'Agrega el nombre de la propiedad' : 'Add property name' }); return }
+    if (!selectedPropertyId) { setSaveMsg({ type: 'error', text: lang === 'es' ? 'Selecciona una propiedad' : 'Select a property' }); return }
     if (status === 'active' && (!stayDate || !drawDate)) { setSaveMsg({ type: 'error', text: lang === 'es' ? 'Agrega las fechas del sorteo y estancia' : 'Add draw and stay dates' }); return }
 
     status === 'draft' ? setSaving(true) : setPublishing(true)
     setSaveMsg(null)
 
     try {
-      // 1. Create property
-      const { data: prop, error: propErr } = await supabase
-        .from('properties')
-        .insert({
-          host_id: user.id,
-          name: propertyName,
-          city: location.split(',')[0]?.trim(),
-          country: location.includes('MX') ? 'México' : 'United States',
-          images: uploadedImages,
-          status: status === 'active' ? 'approved' : 'pending',
-        })
-        .select()
-        .single()
-
-      if (propErr) throw propErr
-
-      // 2. Create raffle
       const { data: raffle, error: raffleErr } = await supabase
         .from('raffles')
         .insert({
-          property_id: prop.id,
+          property_id: selectedPropertyId,
           host_id: user.id,
-          slug: buildSlug(propertyName),
+          slug: buildSlug(selectedPropertyId),
           ticket_price: ticketPrice,
           currency,
           total_tickets: totalTickets,
           min_tickets: Math.round(totalTickets * minPct / 100),
           draw_date: drawDate || null,
           stay_date: stayDate || null,
+          checkout_date: checkoutDate || null,
+          checkin_time: checkinTime,
+          checkout_time: checkoutTime,
+          cleaning_fee: cleaningFee,
           status,
         })
         .select()
@@ -238,31 +237,33 @@ export default function HostPage({ lang, setLang }) {
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
                 {lang === 'es' ? 'Información de la propiedad' : 'Property information'}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                <div>
-                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Property name *</label>
-                  <input value={propertyName} onChange={e => setPropertyName(e.target.value)}
-                    placeholder={lang === 'es' ? 'Casa de playa San Carlos' : 'Beach House — San Carlos'}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Location *</label>
-                  <select value={location} onChange={e => setLocation(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }}>
-                    <option>San Carlos, Sonora, MX</option>
-                    <option>Tucson, Arizona, USA</option>
+              {/* Property selector */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
+                  🏡 {lang === 'es' ? 'Selecciona tu propiedad' : 'Select your property'} *
+                </label>
+                {myProperties.length === 0 ? (
+                  <div style={{ background: '#FAEEDA', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#633806' }}>
+                    ⚠️ {lang === 'es' ? 'No tienes propiedades aprobadas. ' : 'No approved properties yet. '}
+                    <a href="/my-properties" style={{ color: 'var(--brand)', fontWeight: 500 }}>
+                      {lang === 'es' ? 'Registra una aquí →' : 'Register one here →'}
+                    </a>
+                  </div>
+                ) : (
+                  <select value={selectedPropertyId} onChange={e => setSelectedPropertyId(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }}>
+                    <option value="">{lang === 'es' ? 'Selecciona una propiedad...' : 'Select a property...'}</option>
+                    {myProperties.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} — {p.city}</option>
+                    ))}
                   </select>
+                )}
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                  <a href="/my-properties" style={{ color: 'var(--brand)' }}>
+                    + {lang === 'es' ? 'Administrar mis propiedades' : 'Manage my properties'}
+                  </a>
                 </div>
               </div>
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 8 }}>
-                  {lang === 'es' ? 'Fotos de la propiedad' : 'Property photos'} *
-                </label>
-                <ImageUploader
-                  propertyId="new-property"
-                  lang={lang}
-                  onUploadComplete={(urls) => setUploadedImages(urls)}
-                />
               </div>
             </div>
 
