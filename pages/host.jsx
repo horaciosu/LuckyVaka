@@ -58,6 +58,11 @@ export default function HostPage({ lang, setLang }) {
     setLoadingRaffles(false)
   }
 
+  const updateRaffleStatus = async (id, status) => {
+    await supabase.from('raffles').update({ status }).eq('id', id)
+    loadMyRaffles()
+  }
+
   const buildSlug = (name) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') +
     '-' + Date.now().toString().slice(-5)
@@ -113,8 +118,11 @@ export default function HostPage({ lang, setLang }) {
           : (lang === 'es' ? '🚀 ¡Rifa publicada! Ya está visible en la plataforma' : '🚀 Raffle published! Now live on the platform'),
       })
 
-      if (status === 'active') {
-        setTimeout(() => setActiveTab('raffles'), 1500)
+      if (status === 'active' || status === 'draft') {
+        setTimeout(() => {
+          setActiveTab('raffles')
+          loadMyRaffles()
+        }, 1500)
       }
     } catch (err) {
       setSaveMsg({ type: 'error', text: err.message })
@@ -423,44 +431,102 @@ export default function HostPage({ lang, setLang }) {
         {activeTab === 'raffles' && (
           <div>
             <div className="card">
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                    {['Property', 'Status', 'Tickets', 'Draw date', 'Est. payout', ''].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '8px 10px', fontSize: 11, color: 'var(--muted)', fontWeight: 500 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { name: 'Beach House — San Carlos MX', status: 'active', sold: 187, total: 300, draw: 'Jul 8', payout: '~$1,155' },
-                    { name: 'Modern Home — Tucson AZ', status: 'active', sold: 312, total: 400, draw: 'Apr 15', payout: '~$2,695' },
-                    { name: 'Beach House — San Carlos MX', status: 'completed', sold: 300, total: 300, draw: 'Feb 10', payout: '$1,155 ✓' },
-                  ].map((r, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '12px 10px', fontWeight: 500 }}>{r.name}</td>
-                      <td style={{ padding: '12px 10px' }}>
-                        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: r.status === 'active' ? 'var(--brand-light)' : '#F4F3EF', color: r.status === 'active' ? 'var(--brand-dark)' : 'var(--muted)' }}>
-                          {r.status === 'active' ? '● active' : '✓ done'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 10px' }}>
-                        <div>{r.sold}/{r.total}</div>
-                        <div className="progress-bar" style={{ width: 80, marginTop: 3 }}>
-                          <div className="progress-fill" style={{ width: `${Math.round(r.sold/r.total*100)}%` }} />
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px 10px', color: 'var(--muted)' }}>{r.draw}</td>
-                      <td style={{ padding: '12px 10px', color: 'var(--brand)', fontWeight: 500 }}>{r.payout}</td>
-                      <td style={{ padding: '12px 10px' }}>
-                        <button onClick={() => setActiveTab('new')} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', color: 'var(--muted)' }}>Edit</button>
-                      </td>
+              {loadingRaffles ? (
+                <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 13, color: 'var(--muted)' }}>
+                  ⏳ {lang === 'es' ? 'Cargando tus rifas...' : 'Loading your raffles...'}
+                </div>
+              ) : myRaffles.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>🎟</div>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 6 }}>
+                    {lang === 'es' ? 'Aún no tienes rifas' : 'No raffles yet'}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 20 }}>
+                    {lang === 'es' ? 'Crea tu primera rifa y empieza a ganar.' : 'Create your first raffle and start earning.'}
+                  </div>
+                  <button onClick={() => setActiveTab('new')} className="btn-primary">
+                    + {lang === 'es' ? 'Crear primera rifa' : 'Create first raffle'}
+                  </button>
+                </div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                      {[
+                        lang === 'es' ? 'Propiedad' : 'Property',
+                        'Status',
+                        lang === 'es' ? 'Boletos' : 'Tickets',
+                        lang === 'es' ? 'Sorteo' : 'Draw date',
+                        lang === 'es' ? 'Pago est.' : 'Est. payout',
+                        ''
+                      ].map(h => (
+                        <th key={h} style={{ textAlign: 'left', padding: '8px 10px', fontSize: 11, color: 'var(--muted)', fontWeight: 500 }}>{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {myRaffles.map(r => {
+                      const gross = r.ticket_price * r.total_tickets
+                      const net = gross * 0.77
+                      const pct = r.total_tickets > 0 ? Math.round(r.tickets_sold / r.total_tickets * 100) : 0
+                      const statusMap = {
+                        active:    { bg: 'var(--brand-light)', color: 'var(--brand-dark)', label: '● Active' },
+                        draft:     { bg: '#F4F3EF', color: 'var(--muted)', label: '✏️ Draft' },
+                        completed: { bg: '#E6F1FB', color: '#185FA5', label: '✓ Done' },
+                        cancelled: { bg: '#FCEBEB', color: '#A32D2D', label: '✗ Cancelled' },
+                      }
+                      const s = statusMap[r.status] || statusMap.draft
+                      return (
+                        <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '12px 10px', fontWeight: 500 }}>
+                            {r.properties?.name || '—'}
+                            <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>{r.properties?.city}</div>
+                          </td>
+                          <td style={{ padding: '12px 10px' }}>
+                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: s.bg, color: s.color }}>
+                              {s.label}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 10px' }}>
+                            <div>{r.tickets_sold}/{r.total_tickets}</div>
+                            <div className="progress-bar" style={{ width: 80, marginTop: 3 }}>
+                              <div className="progress-fill" style={{ width: `${pct}%` }} />
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 10px', color: 'var(--muted)' }}>
+                            {r.draw_date || '—'}
+                          </td>
+                          <td style={{ padding: '12px 10px', color: 'var(--brand)', fontWeight: 500 }}>
+                            ~{net.toFixed(0)} {r.currency}
+                          </td>
+                          <td style={{ padding: '12px 10px' }}>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              {r.status === 'draft' && (
+                                <button
+                                  onClick={() => updateRaffleStatus(r.id, 'active')}
+                                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--brand)', background: 'var(--brand-light)', color: 'var(--brand-dark)', cursor: 'pointer' }}>
+                                  {lang === 'es' ? 'Activar' : 'Activate'}
+                                </button>
+                              )}
+                              {r.status === 'active' && (
+                                <button
+                                  onClick={() => updateRaffleStatus(r.id, 'draft')}
+                                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', color: 'var(--muted)' }}>
+                                  {lang === 'es' ? 'Pausar' : 'Pause'}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
-            <button onClick={() => setActiveTab('new')} className="btn-primary" style={{ marginTop: 16 }}>+ Create new raffle</button>
+            <button onClick={() => setActiveTab('new')} className="btn-primary" style={{ marginTop: 16 }}>
+              + {lang === 'es' ? 'Crear nueva rifa' : 'Create new raffle'}
+            </button>
           </div>
         )}
 
