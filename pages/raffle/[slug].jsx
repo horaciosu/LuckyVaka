@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Navbar from '../../components/Navbar'
 import PropertyGallery from '../../components/PropertyGallery'
+import PropertyMap from '../../components/PropertyMap'
 import { RAFFLES, PAST_WINNERS } from '../../lib/data'
 
 export default function RafflePage({ lang, setLang }) {
@@ -114,6 +115,18 @@ export default function RafflePage({ lang, setLang }) {
               <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.65 }}>
                 {lang === 'es' ? raffle.description_es : raffle.description_en}
               </p>
+            </div>
+
+            {/* Map */}
+            <div className="card" style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
+                📍 {lang === 'es' ? 'Ubicación y alrededores' : 'Location & nearby'}
+              </div>
+              <PropertyMap
+                location={raffle.location}
+                lang={lang}
+                apiKey="AIzaSyCI5qOJqVrvT1HEhaaQ4vcUi5Lb01uOf70"
+              />
             </div>
 
             {/* Past winners */}
