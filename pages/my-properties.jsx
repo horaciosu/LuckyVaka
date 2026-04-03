@@ -143,7 +143,7 @@ export default function MyProperties({ lang, setLang }) {
       house_rules: prop.house_rules || '',
       checkin_time: prop.checkin_time || '15:00',
       checkout_time: prop.checkout_time || '11:00',
-      images: prop.images || [],
+      images: typeof prop.images === 'string' ? prop.images.replace(/[{}'"]/g,'').split(',').filter(Boolean) : (prop.images || []),
       status: prop.status || 'pending',
     })
     setEditing(prop.id)
@@ -179,7 +179,8 @@ export default function MyProperties({ lang, setLang }) {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+            <div style={{ marginBottom: 12 }}><a href='/host' style={{ fontSize: 13, color: 'var(--brand)', textDecoration: 'none' }}>← {lang === 'es' ? 'Volver al panel' : 'Back to dashboard'}</a></div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
               🏡 {t('My properties', 'Mis propiedades')}
             </h1>
             <p style={{ fontSize: 13, color: 'var(--muted)' }}>
