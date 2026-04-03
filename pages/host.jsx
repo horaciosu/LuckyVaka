@@ -53,18 +53,21 @@ export default function HostPage({ lang, setLang }) {
       .eq('host_id', uid)
       .eq('status', 'approved')
     setMyProperties(data || [])
+    loadMyRaffles(uid)
   }
 
   useEffect(() => {
     if (activeTab === 'raffles' && user) loadMyRaffles()
   }, [activeTab, user])
 
-  const loadMyRaffles = async () => {
+  const loadMyRaffles = async (uid) => {
+    const hostId = uid || user?.id
+    if (!hostId) return
     setLoadingRaffles(true)
     const { data } = await supabase
       .from('raffles')
-      .select('*, properties(name, city)')
-      .eq('host_id', user.id)
+      .select('*, properties(name, city, images)')
+      .eq('host_id', hostId)
       .order('created_at', { ascending: false })
     setMyRaffles(data || [])
     setLoadingRaffles(false)
@@ -172,58 +175,111 @@ export default function HostPage({ lang, setLang }) {
         {/* DASHBOARD */}
         {activeTab === 'dashboard' && (
           <div>
+            {/* New host welcome banner */}
+            {myProperties.length === 0 && (
+              <div style={{ background: 'var(--brand-light)', border: '1px solid #9FE1CB', borderRadius: 12, padding: '20px 24px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--brand-dark)', marginBottom: 4 }}>
+                    👋 {lang === 'es' ? '¡Bienvenido a Lucky Vaka!' : 'Welcome to Lucky Vaka!'}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--brand-dark)', opacity: 0.8 }}>
+                    {lang === 'es' ? 'El primer paso es registrar tu propiedad para poder crear rifas.' : 'First step is to register your property so you can create raffles.'}
+                  </div>
+                </div>
+                <a href="/my-properties" className="btn-primary" style={{ flexShrink: 0, fontSize: 13, textDecoration: 'none' }}>
+                  🏡 {lang === 'es' ? 'Registrar propiedad' : 'Register property'}
+                </a>
+              </div>
+            )}
+
+            {/* Stats — real data */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
               {[
-                { label: lang === 'es' ? 'Total ganado' : 'Total earned', val: '$3,850', sub: '↑ $1,200 este mes' },
-                { label: lang === 'es' ? 'Rifas activas' : 'Active raffles', val: '2', sub: '1 ending soon' },
-                { label: lang === 'es' ? 'Boletos vendidos' : 'Tickets sold', val: '499', sub: '↑ 23 today' },
-                { label: lang === 'es' ? 'Ganadores' : 'Winners hosted', val: '3', sub: '⭐ 4.9 avg' },
+                { label: lang === 'es' ? 'Rifas activas' : 'Active raffles', val: myRaffles.filter(r => r.status === 'active').length, icon: '🎟' },
+                { label: lang === 'es' ? 'Boletos vendidos' : 'Tickets sold', val: myRaffles.reduce((acc, r) => acc + (r.tickets_sold || 0), 0), icon: '🎫' },
+                { label: lang === 'es' ? 'Propiedades' : 'Properties', val: myProperties.length, icon: '🏡' },
+                { label: lang === 'es' ? 'Borradores' : 'Drafts', val: myRaffles.filter(r => r.status === 'draft').length, icon: '📝' },
               ].map((m, i) => (
                 <div key={i} className="card" style={{ padding: '14px 16px' }}>
                   <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 6 }}>{m.label}</div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, color: 'var(--text)' }}>{m.val}</div>
-                  <div style={{ fontSize: 10, color: 'var(--brand)', marginTop: 3 }}>{m.sub}</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 600, color: 'var(--text)' }}>{m.val}</div>
+                  <div style={{ fontSize: 18, marginTop: 4 }}>{m.icon}</div>
                 </div>
               ))}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              {/* Active raffles */}
               <div className="card">
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>
                   {lang === 'es' ? 'Rifas activas' : 'Active raffles'}
                 </div>
-                {[
-                  { emoji: '🌊', name: 'Beach House — San Carlos MX', pct: 62, sold: 187, total: 300 },
-                  { emoji: '🏡', name: 'Modern Home — Tucson AZ', pct: 78, sold: 312, total: 400 },
-                ].map((r, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 0', borderBottom: i === 0 ? '1px solid var(--border)' : 'none' }}>
-                    <div style={{ width: 44, height: 36, borderRadius: 6, background: i === 0 ? 'linear-gradient(135deg,#b3e0f7,#81c8f0)' : 'linear-gradient(135deg,#c8e6c9,#a5d6a7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{r.emoji}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{r.name}</div>
-                      <div className="progress-bar" style={{ marginTop: 4 }}>
-                        <div className="progress-fill" style={{ width: `${r.pct}%` }} />
-                      </div>
+                {myRaffles.filter(r => r.status === 'active').length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>🎟</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
+                      {lang === 'es' ? 'Aún no tienes rifas activas' : 'No active raffles yet'}
                     </div>
-                    <div style={{ textAlign: 'right', fontSize: 12 }}>
-                      <div style={{ fontWeight: 600 }}>{r.pct}%</div>
-                      <div style={{ color: 'var(--muted)', fontSize: 10 }}>{r.sold}/{r.total}</div>
-                    </div>
+                    <button onClick={() => setActiveTab('new')} className="btn-primary" style={{ fontSize: 12, padding: '6px 14px' }}>
+                      + {lang === 'es' ? 'Crear rifa' : 'Create raffle'}
+                    </button>
                   </div>
-                ))}
+                ) : (
+                  myRaffles.filter(r => r.status === 'active').map((r, i, arr) => {
+                    const pct = r.total_tickets > 0 ? Math.round((r.tickets_sold || 0) / r.total_tickets * 100) : 0
+                    return (
+                      <div key={r.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                        <div style={{ width: 44, height: 36, borderRadius: 6, overflow: 'hidden', flexShrink: 0 }}>
+                          {r.properties?.images?.[0]
+                            ? <img src={r.properties.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <div style={{ width: '100%', height: '100%', background: 'var(--brand-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🏡</div>
+                          }
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{r.properties?.name}</div>
+                          <div className="progress-bar" style={{ marginTop: 4 }}>
+                            <div className="progress-fill" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', fontSize: 12 }}>
+                          <div style={{ fontWeight: 600 }}>{pct}%</div>
+                          <div style={{ color: 'var(--muted)', fontSize: 10 }}>{r.tickets_sold || 0}/{r.total_tickets}</div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
               </div>
 
+              {/* Quick actions */}
               <div className="card">
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>Recent activity</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>
+                  {lang === 'es' ? 'Acciones rápidas' : 'Quick actions'}
+                </div>
                 {[
-                  'Carlos M. bought 3 tickets — San Carlos',
-                  'Sarah T. bought 1 ticket — Tucson',
-                  'Ana R. bought 5 tickets — San Carlos',
-                  '🎉 Tucson draw completed — winner notified',
-                ].map((a, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '6px 0', borderBottom: i < 3 ? '1px solid var(--border)' : 'none', fontSize: 12, color: 'var(--muted)' }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--brand)', flexShrink: 0, marginTop: 5 }} />
-                    {a}
-                  </div>
+                  { icon: '🏡', label: lang === 'es' ? 'Registrar propiedad' : 'Register property', href: '/my-properties' },
+                  { icon: '➕', label: lang === 'es' ? 'Crear nueva rifa' : 'Create new raffle', action: () => setActiveTab('new') },
+                  { icon: '🎟', label: lang === 'es' ? 'Ver mis rifas' : 'View my raffles', action: () => setActiveTab('raffles') },
+                ].map((item, i) => (
+                  item.href ? (
+                    <a key={i} href={item.href} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 0', borderBottom: i < 2 ? '1px solid var(--border)' : 'none',
+                      fontSize: 13, color: 'var(--text)', textDecoration: 'none', cursor: 'pointer',
+                    }}>
+                      <span style={{ fontSize: 18 }}>{item.icon}</span> {item.label}
+                      <span style={{ marginLeft: 'auto', color: 'var(--muted)' }}>→</span>
+                    </a>
+                  ) : (
+                    <div key={i} onClick={item.action} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 0', borderBottom: i < 2 ? '1px solid var(--border)' : 'none',
+                      fontSize: 13, color: 'var(--text)', cursor: 'pointer',
+                    }}>
+                      <span style={{ fontSize: 18 }}>{item.icon}</span> {item.label}
+                      <span style={{ marginLeft: 'auto', color: 'var(--muted)' }}>→</span>
+                    </div>
+                  )
                 ))}
               </div>
             </div>
