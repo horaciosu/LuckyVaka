@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Navbar from '../../components/Navbar'
+import PropertyGallery from '../../components/PropertyGallery'
 import { RAFFLES, PAST_WINNERS } from '../../lib/data'
 
 export default function RafflePage({ lang, setLang }) {
@@ -79,19 +80,12 @@ export default function RafflePage({ lang, setLang }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start' }}>
           {/* LEFT */}
           <div>
-            {/* Hero image */}
-            <div style={{
-              height: 220, borderRadius: 12,
-              background: raffle.gradient,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 72, marginBottom: 20,
-              position: 'relative',
-            }}>
-              {raffle.emoji}
-              <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(255,255,255,0.9)', borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 500, color: 'var(--brand-dark)' }}>
-                📍 {raffle.location}
-              </div>
-            </div>
+            <PropertyGallery
+              images={raffle.images || []}
+              emoji={raffle.emoji}
+              gradient={raffle.gradient}
+              title={lang === 'es' ? raffle.title_es : raffle.title}
+            />
 
             {/* Title */}
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>

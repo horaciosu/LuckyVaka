@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Navbar from '../components/Navbar'
+import ImageUploader from '../components/ImageUploader'
 
 export default function HostPage({ lang, setLang }) {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -29,7 +30,7 @@ export default function HostPage({ lang, setLang }) {
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
               {lang === 'es' ? 'Panel del anfitrión' : 'Host panel'}
             </h1>
-            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Lucky Vaka Host · ✓ Verified</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Lucky Vacations Host · ✓ Verified</div>
           </div>
         </div>
 
@@ -131,9 +132,15 @@ export default function HostPage({ lang, setLang }) {
                   </select>
                 </div>
               </div>
-              <div style={{ border: '1px dashed var(--border)', borderRadius: 8, padding: '20px', textAlign: 'center', cursor: 'pointer' }}>
-                <div style={{ fontSize: 24, marginBottom: 6 }}>📷</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)' }}>Drag photos here or click to upload · Min 3 · JPG or PNG</div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 8 }}>
+                  {lang === 'es' ? 'Fotos de la propiedad' : 'Property photos'} *
+                </label>
+                <ImageUploader
+                  propertyId="new-property"
+                  lang={lang}
+                  onUploadComplete={(urls) => console.log('Uploaded:', urls)}
+                />
               </div>
             </div>
 
