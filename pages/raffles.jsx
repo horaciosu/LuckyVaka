@@ -1,15 +1,51 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import RaffleCard from '../components/RaffleCard'
-import { RAFFLES } from '../lib/data'
+import { supabase } from '../lib/supabase'
 
 export default function RafflesPage({ lang, setLang }) {
   const [filter, setFilter] = useState('all')
+  const [raffles, setRaffles] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const filtered = RAFFLES.filter(r => {
+  useEffect(() => {
+    loadRaffles()
+  }, [])
+
+  const loadRaffles = async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('raffles')
+      .select('*, properties(name, city, country, images, emoji)')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+
+    if (data) {
+      // Map Supabase data to the format RaffleCard expects
+      const mapped = data.map(r => ({
+        id: r.id,
+        slug: r.slug,
+        title: r.properties?.name || 'Property',
+        location: `${r.properties?.city || ''}, ${r.properties?.country || ''}`,
+        emoji: r.properties?.emoji || '🏡',
+        images: r.properties?.images || [],
+        ticketPrice: r.ticket_price,
+        currency: r.currency,
+        totalTickets: r.total_tickets,
+        ticketsSold: r.tickets_sold || 0,
+        drawDate: r.draw_date,
+        stayDate: r.stay_date,
+        prize: (r.ticket_price * r.total_tickets * 0.77).toFixed(0),
+      }))
+      setRaffles(mapped)
+    }
+    setLoading(false)
+  }
+
+  const filtered = raffles.filter(r => {
     if (filter === 'all') return true
-    if (filter === 'mx') return r.location.includes('MX')
-    if (filter === 'us') return r.location.includes('USA')
+    if (filter === 'mx') return r.location.includes('MX') || r.location.includes('México') || r.location.includes('Mexico')
+    if (filter === 'us') return r.location.includes('USA') || r.location.includes('United States')
     return true
   })
 
@@ -45,10 +81,27 @@ export default function RafflesPage({ lang, setLang }) {
         </div>
 
         {/* Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
-          {filtered.map(r => <RaffleCard key={r.id} raffle={r} lang={lang} />)}
-        </div>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)', fontSize: 13 }}>
+            ⏳ {lang === 'es' ? 'Cargando rifas...' : 'Loading raffles...'}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 0' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🎟</div>
+            <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)', marginBottom: 6 }}>
+              {lang === 'es' ? 'No hay rifas activas aún' : 'No active raffles yet'}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+              {lang === 'es' ? 'Vuelve pronto — pronto habrá propiedades disponibles.' : 'Check back soon — properties coming soon.'}
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+            {filtered.map(r => <RaffleCard key={r.id} raffle={r} lang={lang} />)}
+          </div>
+        )}
       </div>
     </div>
   )
 }
+
