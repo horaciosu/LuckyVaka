@@ -1,8 +1,23 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import RaffleCard from '../components/RaffleCard'
 import { RAFFLES, STATS } from '../lib/data'
+
+const SUBS = {
+  en: [
+    'Get a chance to stay in premium properties with just a little luck. Real homes, real winners, every draw.',
+    'Enter from $1. Premium properties, real winners, every single raffle.',
+    'Your next luxury vacation could cost less than you think. Real homes, real winners, every draw.',
+    'Access premium stays thanks to your luck. Real homes, real winners, every raffle.',
+  ],
+  es: [
+    'Accede a propiedades premium gracias a tu suerte. Casas reales, ganadores reales, cada sorteo.',
+    'Tu próxima vacación de lujo podría costarte menos de lo que imaginas. Ganadores reales, cada rifa.',
+    'Entra al sorteo desde solo un boleto. Propiedades reales, ganadores garantizados, siempre.',
+    'La suerte es tuya. Propiedades premium reales, ganadores reales, cada sorteo.',
+  ],
+}
 
 const copy = {
   en: {
@@ -59,7 +74,20 @@ const copy = {
 
 export default function Home({ lang, setLang }) {
   const [search, setSearch] = useState('')
+  const [subIndex, setSubIndex] = useState(0)
+  const [fade, setFade] = useState(true)
   const t = copy[lang] || copy.en
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFade(false)
+      setTimeout(() => {
+        setSubIndex(i => (i + 1) % SUBS[lang === 'es' ? 'es' : 'en'].length)
+        setFade(true)
+      }, 400)
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [lang])
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -92,8 +120,13 @@ export default function Home({ lang, setLang }) {
           <span style={{ fontStyle: 'italic', color: 'var(--brand)' }}>{t.h1b}</span>
         </h1>
 
-        <p style={{ fontSize: 16, color: 'var(--muted)', lineHeight: 1.65, marginBottom: 32, maxWidth: 480, margin: '0 auto 32px' }}>
-          {t.sub}
+        <p style={{
+          fontSize: 16, color: 'var(--muted)', lineHeight: 1.65,
+          marginBottom: 32, maxWidth: 480, margin: '0 auto 32px',
+          transition: 'opacity 0.4s ease',
+          opacity: fade ? 1 : 0,
+        }}>
+          {SUBS[lang === 'es' ? 'es' : 'en'][subIndex]}
         </p>
 
         <div style={{ display: 'flex', gap: 8, maxWidth: 500, margin: '0 auto', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -198,7 +231,7 @@ export default function Home({ lang, setLang }) {
         fontSize: 12,
         color: 'var(--subtle)',
       }}>
-        © 2025 Lucky Vaka · Powered by transparency and good luck
+        © 2025 Lucky Vacations · Powered by transparency and good luck
       </footer>
     </div>
   )
