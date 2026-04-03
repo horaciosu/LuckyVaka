@@ -52,7 +52,7 @@ export default function Navbar({ lang, setLang }) {
         <Link href="/raffles" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
           {lang === 'en' ? 'Explore' : 'Explorar'}
         </Link>
-        <Link href="/host-register" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
+        <Link href="/login" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
           {lang === 'en' ? 'List property' : 'Anfitrión'}
         </Link>
 
