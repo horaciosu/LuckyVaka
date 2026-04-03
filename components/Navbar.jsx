@@ -28,7 +28,7 @@ export default function Navbar({ lang, setLang }) {
           </svg>
         </div>
         <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--text)' }}>
-          Lucky Vaka
+          Lucky Vacations
         </span>
       </Link>
 
@@ -36,7 +36,7 @@ export default function Navbar({ lang, setLang }) {
         <Link href="/raffles" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
           {lang === 'en' ? 'Explore' : 'Explorar'}
         </Link>
-        <Link href="/host" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
+        <Link href="/host-register" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
           {lang === 'en' ? 'List property' : 'Anfitrión'}
         </Link>
 
