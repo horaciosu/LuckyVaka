@@ -250,7 +250,7 @@ Enviado desde luckyvaka.com
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
                 <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>{t('Full name', 'Nombre completo')} *</label>
-                <input {...inp('full_name')} placeholder="Horacio Soria" />
+                <input {...inp('full_name')} placeholder="Juan Pérez" />
               </div>
               <div>
                 <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Email *</label>
