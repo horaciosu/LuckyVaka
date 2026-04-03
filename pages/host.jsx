@@ -1,19 +1,124 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import Navbar from '../components/Navbar'
 import ImageUploader from '../components/ImageUploader'
 import { CURRENCIES } from '../lib/data'
+import { supabase } from '../lib/supabase'
 
 export default function HostPage({ lang, setLang }) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('dashboard')
   const [ticketPrice, setTicketPrice] = useState(5)
   const [totalTickets, setTotalTickets] = useState(300)
   const [minPct, setMinPct] = useState(50)
   const [currency, setCurrency] = useState('USD')
+  const [saving, setSaving] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  const [saveMsg, setSaveMsg] = useState(null)
+  const [user, setUser] = useState(null)
+  const [myRaffles, setMyRaffles] = useState([])
+  const [loadingRaffles, setLoadingRaffles] = useState(false)
+  const [uploadedImages, setUploadedImages] = useState([])
+
+  // Form fields
+  const [propertyName, setPropertyName] = useState('')
+  const [location, setLocation] = useState('San Carlos, Sonora, MX')
+  const [stayDate, setStayDate] = useState('')
+  const [drawDate, setDrawDate] = useState('')
 
   const gross = ticketPrice * totalTickets
   const comm = gross * 0.18
   const ins = gross * 0.05
   const net = gross - comm - ins
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const u = data.session?.user
+      setUser(u)
+      if (!u) router.push('/login')
+    })
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'raffles' && user) loadMyRaffles()
+  }, [activeTab, user])
+
+  const loadMyRaffles = async () => {
+    setLoadingRaffles(true)
+    const { data } = await supabase
+      .from('raffles')
+      .select('*, properties(name, city)')
+      .eq('host_id', user.id)
+      .order('created_at', { ascending: false })
+    setMyRaffles(data || [])
+    setLoadingRaffles(false)
+  }
+
+  const buildSlug = (name) =>
+    name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') +
+    '-' + Date.now().toString().slice(-5)
+
+  const saveRaffle = async (status = 'draft') => {
+    if (!propertyName.trim()) { setSaveMsg({ type: 'error', text: lang === 'es' ? 'Agrega el nombre de la propiedad' : 'Add property name' }); return }
+    if (status === 'active' && (!stayDate || !drawDate)) { setSaveMsg({ type: 'error', text: lang === 'es' ? 'Agrega las fechas del sorteo y estancia' : 'Add draw and stay dates' }); return }
+
+    status === 'draft' ? setSaving(true) : setPublishing(true)
+    setSaveMsg(null)
+
+    try {
+      // 1. Create property
+      const { data: prop, error: propErr } = await supabase
+        .from('properties')
+        .insert({
+          host_id: user.id,
+          name: propertyName,
+          city: location.split(',')[0]?.trim(),
+          country: location.includes('MX') ? 'México' : 'United States',
+          images: uploadedImages,
+          status: status === 'active' ? 'approved' : 'pending',
+        })
+        .select()
+        .single()
+
+      if (propErr) throw propErr
+
+      // 2. Create raffle
+      const { data: raffle, error: raffleErr } = await supabase
+        .from('raffles')
+        .insert({
+          property_id: prop.id,
+          host_id: user.id,
+          slug: buildSlug(propertyName),
+          ticket_price: ticketPrice,
+          currency,
+          total_tickets: totalTickets,
+          min_tickets: Math.round(totalTickets * minPct / 100),
+          draw_date: drawDate || null,
+          stay_date: stayDate || null,
+          status,
+        })
+        .select()
+        .single()
+
+      if (raffleErr) throw raffleErr
+
+      setSaveMsg({
+        type: 'success',
+        text: status === 'draft'
+          ? (lang === 'es' ? '✅ Borrador guardado correctamente' : '✅ Draft saved successfully')
+          : (lang === 'es' ? '🚀 ¡Rifa publicada! Ya está visible en la plataforma' : '🚀 Raffle published! Now live on the platform'),
+      })
+
+      if (status === 'active') {
+        setTimeout(() => setActiveTab('raffles'), 1500)
+      }
+    } catch (err) {
+      setSaveMsg({ type: 'error', text: err.message })
+    }
+
+    setSaving(false)
+    setPublishing(false)
+  }
 
   const tabs = [
     { id: 'dashboard', icon: '📊', label: 'Dashboard' },
@@ -124,11 +229,14 @@ export default function HostPage({ lang, setLang }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Property name *</label>
-                  <input defaultValue="Beach House — San Carlos" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', outline: 'none' }} />
+                  <input value={propertyName} onChange={e => setPropertyName(e.target.value)}
+                    placeholder={lang === 'es' ? 'Casa de playa San Carlos' : 'Beach House — San Carlos'}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', outline: 'none' }} />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Location *</label>
-                  <select style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }}>
+                  <select value={location} onChange={e => setLocation(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }}>
                     <option>San Carlos, Sonora, MX</option>
                     <option>Tucson, Arizona, USA</option>
                   </select>
@@ -141,7 +249,7 @@ export default function HostPage({ lang, setLang }) {
                 <ImageUploader
                   propertyId="new-property"
                   lang={lang}
-                  onUploadComplete={(urls) => console.log('Uploaded:', urls)}
+                  onUploadComplete={(urls) => setUploadedImages(urls)}
                 />
               </div>
             </div>
@@ -178,11 +286,13 @@ export default function HostPage({ lang, setLang }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Stay date *</label>
-                  <input type="date" defaultValue="2025-07-15" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }} />
+                  <input type="date" value={stayDate} onChange={e => setStayDate(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }} />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Draw date *</label>
-                  <input type="date" defaultValue="2025-07-08" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }} />
+                  <input type="date" value={drawDate} onChange={e => setDrawDate(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }} />
                 </div>
               </div>
               <div>
@@ -215,9 +325,33 @@ export default function HostPage({ lang, setLang }) {
               ⚠️ {lang === 'es' ? 'El pago se libera solo después de que el ganador completa su estancia.' : 'Payment released only after winner completes their stay. Funds held in escrow.'}
             </div>
 
+            {/* Save message */}
+            {saveMsg && (
+              <div style={{
+                padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 14,
+                background: saveMsg.type === 'success' ? 'var(--brand-light)' : '#FCEBEB',
+                color: saveMsg.type === 'success' ? 'var(--brand-dark)' : '#A32D2D',
+                border: `1px solid ${saveMsg.type === 'success' ? '#9FE1CB' : '#F7C1C1'}`,
+              }}>
+                {saveMsg.text}
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn-secondary">💾 {lang === 'es' ? 'Guardar borrador' : 'Save draft'}</button>
-              <button className="btn-primary">🚀 {lang === 'es' ? 'Publicar rifa' : 'Publish raffle'}</button>
+              <button
+                onClick={() => saveRaffle('draft')}
+                className="btn-secondary"
+                disabled={saving}
+              >
+                {saving ? '⏳ ' + (lang === 'es' ? 'Guardando...' : 'Saving...') : '💾 ' + (lang === 'es' ? 'Guardar borrador' : 'Save draft')}
+              </button>
+              <button
+                onClick={() => saveRaffle('active')}
+                className="btn-primary"
+                disabled={publishing}
+              >
+                {publishing ? '⏳ ' + (lang === 'es' ? 'Publicando...' : 'Publishing...') : '🚀 ' + (lang === 'es' ? 'Publicar rifa' : 'Publish raffle')}
+              </button>
             </div>
           </div>
         )}
