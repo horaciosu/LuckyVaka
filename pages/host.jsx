@@ -24,12 +24,16 @@ export default function HostPage({ lang, setLang }) {
   const [propertyName, setPropertyName] = useState('')
   const [location, setLocation] = useState('San Carlos, Sonora, MX')
   const [stayDate, setStayDate] = useState('')
+  const [checkoutDate, setCheckoutDate] = useState('')
+  const [checkinTime, setCheckinTime] = useState('15:00')
+  const [checkoutTime, setCheckoutTime] = useState('11:00')
+  const [cleaningFee, setCleaningFee] = useState(0)
   const [drawDate, setDrawDate] = useState('')
 
   const gross = ticketPrice * totalTickets
   const comm = gross * 0.18
   const ins = gross * 0.05
-  const net = gross - comm - ins
+  const net = gross - comm - ins + cleaningFee
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -283,16 +287,74 @@ export default function HostPage({ lang, setLang }) {
                   <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 3 }}>Min to activate: {Math.round(totalTickets * minPct / 100)} ({minPct}%)</div>
                 </div>
               </div>
+              {/* Check-in / Check-out dates */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Stay date *</label>
+                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
+                    🗓 {lang === 'es' ? 'Fecha de entrada (check-in)' : 'Check-in date'} *
+                  </label>
                   <input type="date" value={stayDate} onChange={e => setStayDate(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Draw date *</label>
-                  <input type="date" value={drawDate} onChange={e => setDrawDate(e.target.value)}
+                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
+                    🗓 {lang === 'es' ? 'Fecha de salida (check-out)' : 'Check-out date'} *
+                  </label>
+                  <input type="date" value={checkoutDate} onChange={e => setCheckoutDate(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }} />
+                </div>
+              </div>
+
+              {/* Check-in / Check-out times */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
+                    🕒 {lang === 'es' ? 'Hora de entrada' : 'Check-in time'} *
+                  </label>
+                  <select value={checkinTime} onChange={e => setCheckinTime(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }}>
+                    {['12:00','13:00','14:00','15:00','16:00','17:00','18:00'].map(t => (
+                      <option key={t} value={t}>{t} hrs</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
+                    🕙 {lang === 'es' ? 'Hora de salida' : 'Check-out time'} *
+                  </label>
+                  <select value={checkoutTime} onChange={e => setCheckoutTime(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }}>
+                    {['09:00','10:00','11:00','12:00','13:00','14:00'].map(t => (
+                      <option key={t} value={t}>{t} hrs</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Cleaning fee */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
+                  🧹 {lang === 'es' ? `Costo de limpieza (${currency})` : `Cleaning fee (${currency})`}
+                </label>
+                <input type="number" value={cleaningFee} onChange={e => setCleaningFee(+e.target.value)} min={0}
+                  placeholder="0"
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', outline: 'none' }} />
+                <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 3 }}>
+                  {lang === 'es'
+                    ? 'Se suma al total que recibes. El ganador lo ve desglosado antes de aceptar.'
+                    : 'Added to your payout. Winner sees it itemized before accepting.'}
+                </div>
+              </div>
+
+              {/* Draw date */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
+                  🎯 {lang === 'es' ? 'Fecha del sorteo' : 'Draw date'} *
+                </label>
+                <input type="date" value={drawDate} onChange={e => setDrawDate(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }} />
+                <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 3 }}>
+                  {lang === 'es' ? 'Debe ser mínimo 7 días antes del check-in.' : 'Must be at least 7 days before check-in.'}
                 </div>
               </div>
               <div>
@@ -310,9 +372,10 @@ export default function HostPage({ lang, setLang }) {
                 💰 {lang === 'es' ? 'Estimado de pago (si se venden todos)' : 'Estimated payout (if fully sold)'}
               </div>
               {[
-                [lang === 'es' ? 'Venta total' : 'Gross sales', `${gross.toFixed(2)} ${currency}`],
+                [lang === 'es' ? 'Venta total de boletos' : 'Gross ticket sales', `${gross.toFixed(2)} ${currency}`],
                 ['Platform commission (18%)', `-${comm.toFixed(2)} ${currency}`],
                 ['Insurance & ops (5%)', `-${ins.toFixed(2)} ${currency}`],
+                ...(cleaningFee > 0 ? [[lang === 'es' ? 'Costo de limpieza' : 'Cleaning fee', `+${cleaningFee.toFixed(2)} ${currency}`]] : []),
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--brand-dark)', marginBottom: 4 }}><span>{k}</span><span>{v}</span></div>
               ))}
