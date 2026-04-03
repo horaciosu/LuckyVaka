@@ -157,7 +157,7 @@ export default function SignUp({ lang, setLang }) {
 
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 5 }}>{t('Full name', 'Nombre completo')} *</label>
-              <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Horacio Soria" style={inputStyle('name')} />
+              <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Nombre completo" style={inputStyle('name')} />
             </div>
 
             <div style={{ marginBottom: 14 }}>
