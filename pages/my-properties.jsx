@@ -102,7 +102,7 @@ export default function MyProperties({ lang, setLang }) {
 
     const payload = {
       ...form,
-      host_id: user.id,
+      host_id: freshUserId,
       status: 'pending',
     }
 
