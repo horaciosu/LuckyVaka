@@ -82,6 +82,8 @@ export default function HostPage({ lang, setLang }) {
     '-' + Date.now().toString().slice(-5)
 
   const saveRaffle = async (status = 'draft') => {
+    const { data: { session: freshSession } } = await supabase.auth.getSession()
+    const freshUserId = freshSession?.user?.id
     if (!selectedPropertyId) { setSaveMsg({ type: 'error', text: lang === 'es' ? 'Selecciona una propiedad' : 'Select a property' }); return }
     if (status === 'active' && (!stayDate || !drawDate)) { setSaveMsg({ type: 'error', text: lang === 'es' ? 'Agrega las fechas del sorteo y estancia' : 'Add draw and stay dates' }); return }
 
@@ -93,7 +95,7 @@ export default function HostPage({ lang, setLang }) {
         .from('raffles')
         .insert({
           property_id: selectedPropertyId,
-          host_id: user.id,
+          host_id: freshUserId,
           slug: buildSlug(selectedPropertyId),
           ticket_price: ticketPrice,
           currency,
