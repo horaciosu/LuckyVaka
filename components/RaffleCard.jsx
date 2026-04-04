@@ -5,7 +5,6 @@ export default function RaffleCard({ raffle, lang = 'en' }) {
   const totalTickets = raffle.totalTickets ?? raffle.total_tickets ?? 1
   const ticketPrice = raffle.ticketPrice ?? raffle.ticket_price ?? 0
   const currency = raffle.currency || 'USD'
-  const prize = raffle.prize ?? raffle.stay_value ?? 0
   const pct = Math.round((ticketsSold / totalTickets) * 100)
   const remaining = totalTickets - ticketsSold
 
@@ -14,7 +13,6 @@ export default function RaffleCard({ raffle, lang = 'en' }) {
     ? Math.ceil((new Date(drawDate) - new Date()) / (1000 * 60 * 60 * 24))
     : null
 
-  // Use real photo if available, otherwise gradient + emoji
   const firstPhoto = raffle.images?.[0]
   const gradient = raffle.gradient || (raffle.location?.includes('MX') ? 'linear-gradient(135deg, #a8edea, #fed6e3)' : 'linear-gradient(135deg, #d4fc79, #96e6a1)')
 
@@ -24,7 +22,6 @@ export default function RaffleCard({ raffle, lang = 'en' }) {
         onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.08)' }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
       >
-        {/* Image or gradient */}
         <div style={{ height: 160, position: 'relative', overflow: 'hidden' }}>
           {firstPhoto ? (
             <img src={firstPhoto} alt={raffle.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -45,7 +42,6 @@ export default function RaffleCard({ raffle, lang = 'en' }) {
           )}
         </div>
 
-        {/* Body */}
         <div style={{ padding: '14px 16px' }}>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 3 }}>📍 {raffle.location}</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>
@@ -68,9 +64,6 @@ export default function RaffleCard({ raffle, lang = 'en' }) {
               <div style={{ fontSize: 10, color: 'var(--muted)' }}>{lang === 'es' ? 'por boleto' : 'per ticket'}</div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 11, color: 'var(--brand)', fontWeight: 500 }}>
-                {Number(prize).toLocaleString()} {currency} {lang === 'es' ? 'en juego' : 'prize'}
-              </div>
               <div style={{ fontSize: 10, color: 'var(--muted)' }}>
                 {remaining} {lang === 'es' ? 'restantes' : 'remaining'}
               </div>
