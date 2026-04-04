@@ -24,7 +24,6 @@ const copy = {
     tag: 'Win your next vacation for less',
     h1a: 'Luxury stays.',
     h1b: 'Lucky prices.',
-    sub: 'Get a chance to stay in premium properties for as little as $1. Real homes, real winners, every draw.',
     searchPlaceholder: 'Search destination...',
     search: 'Search',
     stat1: 'Active raffles',
@@ -44,12 +43,12 @@ const copy = {
     ctaP: "Join travelers winning vacations they couldn't otherwise afford.",
     ctaBtn: 'Browse raffles',
     ctaHost: 'List my property',
+    loading: 'Loading active raffles...',
   },
   es: {
     tag: 'Gana tus próximas vacaciones por menos',
     h1a: 'Estancias de lujo.',
     h1b: 'Precios con suerte.',
-    sub: 'Accede a propiedades premium desde $1 USD. Casas reales, ganadores reales, cada sorteo.',
     searchPlaceholder: 'Buscar destino...',
     search: 'Buscar',
     stat1: 'Rifas activas',
@@ -69,6 +68,7 @@ const copy = {
     ctaP: 'Únete a viajeros que ganan vacaciones que de otra forma no podrían costear.',
     ctaBtn: 'Ver rifas',
     ctaHost: 'Listar mi propiedad',
+    loading: 'Cargando rifas activas...',
   },
 }
 
@@ -77,11 +77,13 @@ export default function Home({ lang, setLang }) {
   const [subIndex, setSubIndex] = useState(0)
   const [fade, setFade] = useState(true)
   const [raffles, setRaffles] = useState([])
+  const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ activeRaffles: 0, minTicketPrice: 1, countries: 0 })
   const t = copy[lang] || copy.en
 
   useEffect(() => {
     const fetchRaffles = async () => {
+      setLoading(true)
       const { data } = await supabase
         .from('raffles')
         .select('*, properties(name, city, country, images, beds, baths, max_guests, description_en, description_es, amenities)')
@@ -90,11 +92,20 @@ export default function Home({ lang, setLang }) {
         .limit(6)
 
       if (data && data.length > 0) {
-        setRaffles(data)
+        const normalized = data.map(r => ({
+          ...r,
+          title: r.properties?.name || r.title || '',
+          title_es: r.properties?.name || r.title_es || '',
+          location: [r.properties?.city, r.properties?.country].filter(Boolean).join(', '),
+          images: r.properties?.images || [],
+          stay_value: r.stay_value || 0,
+        }))
+        setRaffles(normalized)
         const countries = new Set(data.map(r => r.properties?.country).filter(Boolean)).size
         const minPrice = Math.min(...data.map(r => r.ticket_price))
         setStats({ activeRaffles: data.length, minTicketPrice: minPrice, countries: countries || 1 })
       }
+      setLoading(false)
     }
     fetchRaffles()
   }, [])
@@ -117,71 +128,44 @@ export default function Home({ lang, setLang }) {
       {/* Hero */}
       <section style={{ padding: '56px 24px 48px', textAlign: 'center', maxWidth: 680, margin: '0 auto' }}>
         <div style={{
-          display: 'inline-block',
-          background: 'var(--brand-light)',
-          color: 'var(--brand-dark)',
-          fontSize: 12,
-          fontWeight: 500,
-          padding: '5px 14px',
-          borderRadius: 20,
-          marginBottom: 20,
+          display: 'inline-block', background: 'var(--brand-light)', color: 'var(--brand-dark)',
+          fontSize: 12, fontWeight: 500, padding: '5px 14px', borderRadius: 20, marginBottom: 20,
         }}>
           {t.tag}
         </div>
-
         <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'clamp(36px, 6vw, 56px)',
-          fontWeight: 600,
-          lineHeight: 1.15,
-          color: 'var(--text)',
-          marginBottom: 18,
+          fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 6vw, 56px)',
+          fontWeight: 600, lineHeight: 1.15, color: 'var(--text)', marginBottom: 18,
         }}>
           {t.h1a}<br />
           <span style={{ fontStyle: 'italic', color: 'var(--brand)' }}>{t.h1b}</span>
         </h1>
-
         <p style={{
           fontSize: 16, color: 'var(--muted)', lineHeight: 1.65,
           marginBottom: 32, maxWidth: 480, margin: '0 auto 32px',
-          transition: 'opacity 0.4s ease',
-          opacity: fade ? 1 : 0,
+          transition: 'opacity 0.4s ease', opacity: fade ? 1 : 0,
         }}>
           {SUBS[lang === 'es' ? 'es' : 'en'][subIndex]}
         </p>
-
         <div style={{ display: 'flex', gap: 8, maxWidth: 500, margin: '0 auto', flexWrap: 'wrap', justifyContent: 'center' }}>
           <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+            value={search} onChange={e => setSearch(e.target.value)}
             placeholder={t.searchPlaceholder}
             style={{
-              flex: 1, minWidth: 200,
-              padding: '11px 16px',
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              fontSize: 14,
-              background: 'var(--surface)',
-              color: 'var(--text)',
-              outline: 'none',
+              flex: 1, minWidth: 200, padding: '11px 16px',
+              border: '1px solid var(--border)', borderRadius: 8, fontSize: 14,
+              background: 'var(--surface)', color: 'var(--text)', outline: 'none',
             }}
           />
-          <Link href="/raffles" className="btn-primary">
-            {t.search}
-          </Link>
+          <Link href="/raffles" className="btn-primary">{t.search}</Link>
         </div>
       </section>
 
       {/* Stats */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: 40,
-        padding: '20px 24px',
-        borderTop: '1px solid var(--border)',
-        borderBottom: '1px solid var(--border)',
-        background: 'var(--surface)',
-        flexWrap: 'wrap',
+        display: 'flex', justifyContent: 'center', gap: 40, padding: '20px 24px',
+        borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
+        background: 'var(--surface)', flexWrap: 'wrap',
       }}>
         {[
           { val: stats.activeRaffles, label: t.stat1 },
@@ -203,9 +187,13 @@ export default function Home({ lang, setLang }) {
           <Link href="/raffles" style={{ fontSize: 13, color: 'var(--brand)', textDecoration: 'none' }}>{t.seeAll}</Link>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
-          {raffles.length === 0 ? (
+          {loading ? (
             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 13 }}>
-              {lang === 'es' ? 'Cargando rifas activas...' : 'Loading active raffles...'}
+              ⏳ {t.loading}
+            </div>
+          ) : raffles.length === 0 ? (
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 13 }}>
+              {lang === 'es' ? 'No hay rifas activas en este momento.' : 'No active raffles at the moment.'}
             </div>
           ) : raffles.map(r => <RaffleCard key={r.id} raffle={r} lang={lang} />)}
         </div>
@@ -250,11 +238,8 @@ export default function Home({ lang, setLang }) {
 
       {/* Footer */}
       <footer style={{
-        borderTop: '1px solid var(--border)',
-        padding: '24px',
-        textAlign: 'center',
-        fontSize: 12,
-        color: 'var(--subtle)',
+        borderTop: '1px solid var(--border)', padding: '24px',
+        textAlign: 'center', fontSize: 12, color: 'var(--subtle)',
       }}>
         © 2025 Lucky Vacations · Powered by transparency and good luck
       </footer>
