@@ -94,6 +94,8 @@ export default function MyProperties({ lang, setLang }) {
   }
 
   const handleSave = async () => {
+    const { data: { session: freshSession } } = await supabase.auth.getSession()
+    const freshUserId = freshSession?.user?.id
     if (!validate()) return
     setSaving(true)
     setSaveMsg(null)
