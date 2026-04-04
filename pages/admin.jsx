@@ -146,12 +146,12 @@ export default function AdminPage({ lang, setLang }) {
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>
                 ⏳ {t('Pending approvals', 'Aprobaciones pendientes')}
               </div>
-              {properties.filter(p => p.status === 'pending').length === 0 ? (
+              {properties.filter(p => p.status === 'pending_review').length === 0 ? (
                 <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '20px 0' }}>
                   ✅ {t('No pending approvals', 'Sin aprobaciones pendientes')}
                 </div>
               ) : (
-                properties.filter(p => p.status === 'pending').map(p => (
+                properties.filter(p => p.status === 'pending_review').map(p => (
                   <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{p.name}</div>
