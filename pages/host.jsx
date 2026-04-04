@@ -22,6 +22,10 @@ export default function HostPage({ lang, setLang }) {
   const [loadingRaffles, setLoadingRaffles] = useState(false)
   const [uploadedImages, setUploadedImages] = useState([])
 
+  // Edit mode
+  const [editingRaffle, setEditingRaffle] = useState(null) // raffle object being edited
+
+  // Form fields
   const [propertyName, setPropertyName] = useState('')
   const [location, setLocation] = useState('San Carlos, Sonora, MX')
   const [stayDate, setStayDate] = useState('')
@@ -48,9 +52,9 @@ export default function HostPage({ lang, setLang }) {
   const loadMyProperties = async (uid) => {
     const { data } = await supabase
       .from('properties')
-      .select('id, name, city, country, images, status')
+      .select('id, name, city, country, images')
       .eq('host_id', uid)
-      .order('created_at', { ascending: false })
+      .eq('status', 'approved')
     setMyProperties(data || [])
     loadMyRaffles(uid)
   }
@@ -60,7 +64,7 @@ export default function HostPage({ lang, setLang }) {
   }, [activeTab, user])
 
   const loadMyRaffles = async (uid) => {
-    const hostId = uid
+    const hostId = uid || user?.id
     if (!hostId) return
     setLoadingRaffles(true)
     const { data } = await supabase
@@ -81,52 +85,142 @@ export default function HostPage({ lang, setLang }) {
     name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') +
     '-' + Date.now().toString().slice(-5)
 
+  // Reglas de edición:
+  // - Si tickets_sold === 0: puede editar todo
+  // - Si tickets_sold > 0 y han pasado 24h desde created_at: puede editar fechas, precio y boletos
+  // - Si tickets_sold > 0 y NO han pasado 24h: no puede editar nada (solo ver)
+  const canEdit = (raffle) => {
+    if (!raffle) return { allowed: false, priceAndTickets: false, datesOnly: false }
+    const ticketsSold = raffle.tickets_sold || 0
+    const hoursElapsed = (Date.now() - new Date(raffle.created_at)) / 3600000
+
+    if (ticketsSold === 0) {
+      return { allowed: true, priceAndTickets: true, datesOnly: false, reason: null }
+    }
+    if (hoursElapsed >= 24) {
+      return {
+        allowed: true,
+        priceAndTickets: true,
+        datesOnly: false,
+        reason: lang === 'es'
+          ? '⚠️ Ya hay boletos vendidos. El precio y boletos que pongas aplican solo a boletos futuros. Los compradores existentes conservan sus condiciones originales.'
+          : '⚠️ Tickets already sold. Price/ticket changes only apply to future purchases. Existing buyers keep their original terms.'
+      }
+    }
+    return {
+      allowed: false,
+      priceAndTickets: false,
+      datesOnly: false,
+      reason: lang === 'es'
+        ? '🔒 No puedes editar esta rifa todavía. Debes esperar 24 horas desde que se publicó para poder hacer cambios.'
+        : '🔒 You cannot edit this raffle yet. Wait 24 hours after publishing before making changes.'
+    }
+  }
+
+  const handleEditRaffle = (raffle) => {
+    const { allowed, reason } = canEdit(raffle)
+    if (!allowed) {
+      alert(reason)
+      return
+    }
+    setEditingRaffle(raffle)
+    setSelectedPropertyId(raffle.property_id)
+    setTicketPrice(raffle.ticket_price)
+    setTotalTickets(raffle.total_tickets)
+    setCurrency(raffle.currency)
+    setStayDate(raffle.stay_date || '')
+    setCheckoutDate(raffle.checkout_date || '')
+    setCheckinTime(raffle.checkin_time || '15:00')
+    setCheckoutTime(raffle.checkout_time || '11:00')
+    setCleaningFee(raffle.cleaning_fee || 0)
+    setDrawDate(raffle.draw_date || '')
+    setMinPct(raffle.min_tickets && raffle.total_tickets
+      ? Math.round(raffle.min_tickets / raffle.total_tickets * 100)
+      : 50)
+    setSaveMsg(null)
+    setActiveTab('new')
+  }
+
+  const resetForm = () => {
+    setEditingRaffle(null)
+    setSelectedPropertyId('')
+    setTicketPrice(5)
+    setTotalTickets(300)
+    setCurrency('USD')
+    setStayDate('')
+    setCheckoutDate('')
+    setCheckinTime('15:00')
+    setCheckoutTime('11:00')
+    setCleaningFee(0)
+    setDrawDate('')
+    setMinPct(50)
+    setSaveMsg(null)
+  }
+
   const saveRaffle = async (status = 'draft') => {
-    const { data: { session: freshSession } } = await supabase.auth.getSession()
-    const freshUserId = freshSession?.user?.id
     if (!selectedPropertyId) { setSaveMsg({ type: 'error', text: lang === 'es' ? 'Selecciona una propiedad' : 'Select a property' }); return }
     if (status === 'active' && (!stayDate || !drawDate)) { setSaveMsg({ type: 'error', text: lang === 'es' ? 'Agrega las fechas del sorteo y estancia' : 'Add draw and stay dates' }); return }
 
     status === 'draft' ? setSaving(true) : setPublishing(true)
     setSaveMsg(null)
 
+    const { data: { session: freshSession } } = await supabase.auth.getSession()
+    const freshUserId = freshSession?.user?.id
+
     try {
-      const { data: raffle, error: raffleErr } = await supabase
-        .from('raffles')
-        .insert({
-          property_id: selectedPropertyId,
-          host_id: freshUserId,
-          slug: buildSlug(selectedPropertyId),
-          ticket_price: ticketPrice,
-          currency,
-          total_tickets: totalTickets,
-          min_tickets: Math.round(totalTickets * minPct / 100),
-          draw_date: drawDate || null,
-          stay_date: stayDate || null,
-          checkout_date: checkoutDate || null,
-          checkin_time: checkinTime,
-          checkout_time: checkoutTime,
-          cleaning_fee: cleaningFee,
-          status,
-        })
-        .select()
-        .single()
+      const payload = {
+        property_id: selectedPropertyId,
+        host_id: freshUserId,
+        ticket_price: ticketPrice,
+        currency,
+        total_tickets: totalTickets,
+        min_tickets: Math.round(totalTickets * minPct / 100),
+        draw_date: drawDate || null,
+        stay_date: stayDate || null,
+        checkout_date: checkoutDate || null,
+        checkin_time: checkinTime,
+        checkout_time: checkoutTime,
+        cleaning_fee: cleaningFee,
+        status,
+      }
+
+      let raffleErr
+
+      if (editingRaffle) {
+        // UPDATE
+        const { error } = await supabase
+          .from('raffles')
+          .update(payload)
+          .eq('id', editingRaffle.id)
+        raffleErr = error
+      } else {
+        // INSERT
+        payload.slug = buildSlug(selectedPropertyId)
+        const { error } = await supabase
+          .from('raffles')
+          .insert(payload)
+          .select()
+          .single()
+        raffleErr = error
+      }
 
       if (raffleErr) throw raffleErr
 
       setSaveMsg({
         type: 'success',
-        text: status === 'draft'
-          ? (lang === 'es' ? '✅ Borrador guardado correctamente' : '✅ Draft saved successfully')
-          : (lang === 'es' ? '🚀 ¡Rifa publicada! Ya está visible en la plataforma' : '🚀 Raffle published! Now live on the platform'),
+        text: editingRaffle
+          ? (lang === 'es' ? '✅ Rifa actualizada correctamente' : '✅ Raffle updated successfully')
+          : status === 'draft'
+            ? (lang === 'es' ? '✅ Borrador guardado correctamente' : '✅ Draft saved successfully')
+            : (lang === 'es' ? '🚀 ¡Rifa publicada! Ya está visible en la plataforma' : '🚀 Raffle published! Now live on the platform'),
       })
 
-      if (status === 'active' || status === 'draft') {
-        setTimeout(() => {
-          setActiveTab('raffles')
-          loadMyRaffles(user?.id)
-        }, 1500)
-      }
+      setTimeout(() => {
+        resetForm()
+        setActiveTab('raffles')
+        loadMyRaffles(freshUserId)
+      }, 1500)
+
     } catch (err) {
       setSaveMsg({ type: 'error', text: err.message })
     }
@@ -137,7 +231,6 @@ export default function HostPage({ lang, setLang }) {
 
   const tabs = [
     { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-    { id: 'properties', icon: '🏠', label: lang === 'es' ? 'Mis propiedades' : 'My properties' },
     { id: 'new', icon: '➕', label: lang === 'es' ? 'Nueva rifa' : 'New raffle' },
     { id: 'raffles', icon: '🎟', label: lang === 'es' ? 'Mis rifas' : 'My raffles' },
     { id: 'earnings', icon: '💰', label: lang === 'es' ? 'Ganancias' : 'Earnings' },
@@ -160,7 +253,10 @@ export default function HostPage({ lang, setLang }) {
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
           {tabs.map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+            <button key={t.id} onClick={() => {
+              if (t.id !== 'new') resetForm()
+              setActiveTab(t.id)
+            }} style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '8px 16px', fontSize: 13, cursor: 'pointer',
               background: 'transparent', border: 'none',
@@ -208,7 +304,7 @@ export default function HostPage({ lang, setLang }) {
               ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="card">
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>
                   {lang === 'es' ? 'Rifas activas' : 'Active raffles'}
@@ -249,13 +345,61 @@ export default function HostPage({ lang, setLang }) {
                   })
                 )}
               </div>
+
+              <div className="card">
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>
+                  {lang === 'es' ? 'Acciones rápidas' : 'Quick actions'}
+                </div>
+                {[
+                  { icon: '🏡', label: lang === 'es' ? 'Registrar propiedad' : 'Register property', href: '/my-properties' },
+                  { icon: '➕', label: lang === 'es' ? 'Crear nueva rifa' : 'Create new raffle', action: () => setActiveTab('new') },
+                  { icon: '🎟', label: lang === 'es' ? 'Ver mis rifas' : 'View my raffles', action: () => setActiveTab('raffles') },
+                ].map((item, i) => (
+                  item.href ? (
+                    <a key={i} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: i < 2 ? '1px solid var(--border)' : 'none', fontSize: 13, color: 'var(--text)', textDecoration: 'none', cursor: 'pointer' }}>
+                      <span style={{ fontSize: 18 }}>{item.icon}</span> {item.label}
+                      <span style={{ marginLeft: 'auto', color: 'var(--muted)' }}>→</span>
+                    </a>
+                  ) : (
+                    <div key={i} onClick={item.action} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: i < 2 ? '1px solid var(--border)' : 'none', fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
+                      <span style={{ fontSize: 18 }}>{item.icon}</span> {item.label}
+                      <span style={{ marginLeft: 'auto', color: 'var(--muted)' }}>→</span>
+                    </div>
+                  )
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {/* NEW RAFFLE */}
+        {/* NEW / EDIT RAFFLE */}
         {activeTab === 'new' && (
           <div style={{ maxWidth: 640 }}>
+
+            {/* Edit mode header */}
+            {editingRaffle && (
+              <div style={{ background: '#E6F1FB', border: '1px solid #B3D4F5', borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#185FA5' }}>
+                    ✏️ {lang === 'es' ? 'Editando rifa' : 'Editing raffle'}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#185FA5', marginTop: 2 }}>
+                    {editingRaffle.properties?.name} · {lang === 'es' ? 'Creada' : 'Created'}: {new Date(editingRaffle.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <button onClick={resetForm} style={{ fontSize: 11, color: '#185FA5', background: 'transparent', border: '1px solid #B3D4F5', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
+                  {lang === 'es' ? 'Cancelar edición' : 'Cancel edit'}
+                </button>
+              </div>
+            )}
+
+            {/* Warning if tickets sold */}
+            {editingRaffle && (editingRaffle.tickets_sold || 0) > 0 && (
+              <div style={{ background: '#FAEEDA', border: '1px solid #F5C97A', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: '#633806' }}>
+                {canEdit(editingRaffle).reason}
+              </div>
+            )}
+
             <div className="card" style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
                 {lang === 'es' ? 'Información de la propiedad' : 'Property information'}
@@ -273,18 +417,21 @@ export default function HostPage({ lang, setLang }) {
                   </div>
                 ) : (
                   <select value={selectedPropertyId} onChange={e => setSelectedPropertyId(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }}>
+                    disabled={!!editingRaffle}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: editingRaffle ? 'var(--bg)' : 'var(--surface)', color: 'var(--text)', opacity: editingRaffle ? 0.6 : 1 }}>
                     <option value="">{lang === 'es' ? 'Selecciona una propiedad...' : 'Select a property...'}</option>
                     {myProperties.map(p => (
                       <option key={p.id} value={p.id}>{p.name} — {p.city}</option>
                     ))}
                   </select>
                 )}
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
-                  <a href="/my-properties" style={{ color: 'var(--brand)' }}>
-                    + {lang === 'es' ? 'Administrar mis propiedades' : 'Manage my properties'}
-                  </a>
-                </div>
+                {!editingRaffle && (
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                    <a href="/my-properties" style={{ color: 'var(--brand)' }}>
+                      + {lang === 'es' ? 'Administrar mis propiedades' : 'Manage my properties'}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -317,6 +464,7 @@ export default function HostPage({ lang, setLang }) {
                   <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 3 }}>Min to activate: {Math.round(totalTickets * minPct / 100)} ({minPct}%)</div>
                 </div>
               </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
@@ -333,6 +481,7 @@ export default function HostPage({ lang, setLang }) {
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }} />
                 </div>
               </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
@@ -357,6 +506,7 @@ export default function HostPage({ lang, setLang }) {
                   </select>
                 </div>
               </div>
+
               <div style={{ marginBottom: 12 }}>
                 <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
                   🧹 {lang === 'es' ? `Costo de limpieza (${currency})` : `Cleaning fee (${currency})`}
@@ -365,9 +515,12 @@ export default function HostPage({ lang, setLang }) {
                   placeholder="0"
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', outline: 'none' }} />
                 <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 3 }}>
-                  {lang === 'es' ? 'Se suma al total que recibes. El ganador lo ve desglosado antes de aceptar.' : 'Added to your payout. Winner sees it itemized before accepting.'}
+                  {lang === 'es'
+                    ? 'Se suma al total que recibes. El ganador lo ve desglosado antes de aceptar.'
+                    : 'Added to your payout. Winner sees it itemized before accepting.'}
                 </div>
               </div>
+
               <div style={{ marginBottom: 12 }}>
                 <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
                   🎯 {lang === 'es' ? 'Fecha del sorteo' : 'Draw date'} *
@@ -378,6 +531,7 @@ export default function HostPage({ lang, setLang }) {
                   {lang === 'es' ? 'Debe ser mínimo 7 días antes del check-in.' : 'Must be at least 7 days before check-in.'}
                 </div>
               </div>
+
               <div>
                 <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>
                   Min % to activate: <strong>{minPct}%</strong>
@@ -387,6 +541,7 @@ export default function HostPage({ lang, setLang }) {
               </div>
             </div>
 
+            {/* Payout calculator */}
             <div style={{ background: 'var(--brand-light)', border: '1px solid #9FE1CB', borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-dark)', marginBottom: 10 }}>
                 💰 {lang === 'es' ? 'Estimado de pago (si se venden todos)' : 'Estimated payout (if fully sold)'}
@@ -420,12 +575,25 @@ export default function HostPage({ lang, setLang }) {
             )}
 
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => saveRaffle('draft')} className="btn-secondary" disabled={saving}>
-                {saving ? '⏳ ' + (lang === 'es' ? 'Guardando...' : 'Saving...') : '💾 ' + (lang === 'es' ? 'Guardar borrador' : 'Save draft')}
-              </button>
-              <button onClick={() => saveRaffle('active')} className="btn-primary" disabled={publishing}>
-                {publishing ? '⏳ ' + (lang === 'es' ? 'Publicando...' : 'Publishing...') : '🚀 ' + (lang === 'es' ? 'Publicar rifa' : 'Publish raffle')}
-              </button>
+              {editingRaffle ? (
+                <>
+                  <button onClick={resetForm} className="btn-secondary">
+                    {lang === 'es' ? 'Cancelar' : 'Cancel'}
+                  </button>
+                  <button onClick={() => saveRaffle(editingRaffle.status)} className="btn-primary" disabled={saving}>
+                    {saving ? '⏳ ' + (lang === 'es' ? 'Guardando...' : 'Saving...') : '💾 ' + (lang === 'es' ? 'Guardar cambios' : 'Save changes')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => saveRaffle('draft')} className="btn-secondary" disabled={saving}>
+                    {saving ? '⏳ ' + (lang === 'es' ? 'Guardando...' : 'Saving...') : '💾 ' + (lang === 'es' ? 'Guardar borrador' : 'Save draft')}
+                  </button>
+                  <button onClick={() => saveRaffle('active')} className="btn-primary" disabled={publishing}>
+                    {publishing ? '⏳ ' + (lang === 'es' ? 'Publicando...' : 'Publishing...') : '🚀 ' + (lang === 'es' ? 'Publicar rifa' : 'Publish raffle')}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -479,6 +647,11 @@ export default function HostPage({ lang, setLang }) {
                         cancelled: { bg: '#FCEBEB', color: '#A32D2D', label: '✗ Cancelled' },
                       }
                       const s = statusMap[r.status] || statusMap.draft
+                      const editInfo = canEdit(r)
+                      const hoursElapsed = (Date.now() - new Date(r.created_at)) / 3600000
+                      const canEditNow = editInfo.allowed
+                      const waitHours = Math.max(0, 24 - hoursElapsed).toFixed(1)
+
                       return (
                         <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '12px 10px', fontWeight: 500 }}>
@@ -496,10 +669,14 @@ export default function HostPage({ lang, setLang }) {
                               <div className="progress-fill" style={{ width: `${pct}%` }} />
                             </div>
                           </td>
-                          <td style={{ padding: '12px 10px', color: 'var(--muted)' }}>{r.draw_date || '—'}</td>
-                          <td style={{ padding: '12px 10px', color: 'var(--brand)', fontWeight: 500 }}>~{net.toFixed(0)} {r.currency}</td>
+                          <td style={{ padding: '12px 10px', color: 'var(--muted)' }}>
+                            {r.draw_date || '—'}
+                          </td>
+                          <td style={{ padding: '12px 10px', color: 'var(--brand)', fontWeight: 500 }}>
+                            ~{net.toFixed(0)} {r.currency}
+                          </td>
                           <td style={{ padding: '12px 10px' }}>
-                            <div style={{ display: 'flex', gap: 6 }}>
+                            <div style={{ display: 'flex', gap: 6, flexDirection: 'column', alignItems: 'flex-start' }}>
                               {r.status === 'draft' && (
                                 <button onClick={() => updateRaffleStatus(r.id, 'active')}
                                   style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--brand)', background: 'var(--brand-light)', color: 'var(--brand-dark)', cursor: 'pointer' }}>
@@ -512,6 +689,19 @@ export default function HostPage({ lang, setLang }) {
                                   {lang === 'es' ? 'Pausar' : 'Pause'}
                                 </button>
                               )}
+                              {/* Edit button with 24h rule */}
+                              {r.status !== 'completed' && r.status !== 'cancelled' && (
+                                canEditNow ? (
+                                  <button onClick={() => handleEditRaffle(r)}
+                                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', color: 'var(--text)' }}>
+                                    ✏️ {lang === 'es' ? 'Editar' : 'Edit'}
+                                  </button>
+                                ) : (
+                                  <span style={{ fontSize: 10, color: 'var(--muted)' }} title={editInfo.reason}>
+                                    🔒 {lang === 'es' ? `Disponible en ${waitHours}h` : `Available in ${waitHours}h`}
+                                  </span>
+                                )
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -521,74 +711,9 @@ export default function HostPage({ lang, setLang }) {
                 </table>
               )}
             </div>
-            <button onClick={() => setActiveTab('new')} className="btn-primary" style={{ marginTop: 16 }}>
+            <button onClick={() => { resetForm(); setActiveTab('new') }} className="btn-primary" style={{ marginTop: 16 }}>
               + {lang === 'es' ? 'Crear nueva rifa' : 'Create new raffle'}
             </button>
-          </div>
-        )}
-
-        {/* MIS PROPIEDADES */}
-        {activeTab === 'properties' && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <button onClick={() => setActiveTab('dashboard')}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                ← {lang === 'es' ? 'Volver al dashboard' : 'Back to dashboard'}
-              </button>
-              <a href="/my-properties" className="btn-primary" style={{ fontSize: 13, textDecoration: 'none' }}>
-                + {lang === 'es' ? 'Agregar propiedad' : 'Add property'}
-              </a>
-            </div>
-            {myProperties.length === 0 ? (
-              <div className="card" style={{ textAlign: 'center', padding: '48px 0' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
-                  {lang === 'es' ? 'Aún no tienes propiedades' : 'No properties yet'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 20 }}>
-                  {lang === 'es' ? 'Registra tu primera propiedad para comenzar a crear rifas.' : 'Register your first property to start creating raffles.'}
-                </div>
-                <a href="/my-properties" className="btn-primary" style={{ textDecoration: 'none', fontSize: 13 }}>
-                  🏡 {lang === 'es' ? 'Registrar propiedad' : 'Register property'}
-                </a>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-                {myProperties.map(p => (
-                  <div key={p.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                    <div style={{ height: 160, overflow: 'hidden', background: 'var(--brand-light)' }}>
-                      {p.images?.[0]
-                        ? <img src={p.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>🏡</div>
-                      }
-                    </div>
-                    <div style={{ padding: '14px 16px' }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{p.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>📍 {p.city}, {p.country}</div>
-                      <div style={{ marginBottom: 10 }}>
-                        <span style={{
-                          fontSize: 10, padding: '2px 8px', borderRadius: 10,
-                          background: p.status === 'approved' ? 'var(--brand-light)' : p.status === 'pending_review' ? '#FEF3C7' : '#F4F3EF',
-                          color: p.status === 'approved' ? 'var(--brand-dark)' : p.status === 'pending_review' ? '#92400E' : 'var(--muted)',
-                        }}>
-                          {p.status === 'approved' ? '✓ ' + (lang === 'es' ? 'Aprobada' : 'Approved') :
-                           p.status === 'pending_review' ? '⏳ ' + (lang === 'es' ? 'En revisión' : 'Pending review') :
-                           p.status}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={() => setActiveTab('new')} className="btn-primary" style={{ fontSize: 11, padding: '5px 12px', flex: 1 }}>
-                          + {lang === 'es' ? 'Crear rifa' : 'Create raffle'}
-                        </button>
-                        <a href="/my-properties" style={{ fontSize: 11, padding: '5px 12px', borderRadius: 8, border: '1px solid var(--border)', color: 'var(--text)', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-                          ✏️ {lang === 'es' ? 'Editar' : 'Edit'}
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
@@ -653,4 +778,3 @@ export default function HostPage({ lang, setLang }) {
     </div>
   )
 }
-// viernes,  3 de abril de 2026, 23:42:29 MST
