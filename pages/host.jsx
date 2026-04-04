@@ -56,11 +56,11 @@ export default function HostPage({ lang, setLang }) {
   }
 
   useEffect(() => {
-    if (activeTab === 'raffles' && user) loadMyRaffles()
+    if (activeTab === 'raffles' && user) loadMyRaffles(user.id)
   }, [activeTab, user])
 
   const loadMyRaffles = async (uid) => {
-    const hostId = uid || user?.id
+    const hostId = uid
     if (!hostId) return
     setLoadingRaffles(true)
     const { data } = await supabase
@@ -74,7 +74,7 @@ export default function HostPage({ lang, setLang }) {
 
   const updateRaffleStatus = async (id, status) => {
     await supabase.from('raffles').update({ status }).eq('id', id)
-    loadMyRaffles()
+    loadMyRaffles(user?.id)
   }
 
   const buildSlug = (name) =>
@@ -122,7 +122,7 @@ export default function HostPage({ lang, setLang }) {
       if (status === 'active' || status === 'draft') {
         setTimeout(() => {
           setActiveTab('raffles')
-          loadMyRaffles()
+          loadMyRaffles(user?.id)
         }, 1500)
       }
     } catch (err) {
