@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import RaffleCard from '../components/RaffleCard'
-import { RAFFLES, STATS } from '../lib/data'
+import { supabase } from '../lib/supabase'
 
 const SUBS = {
   en: [
@@ -76,7 +76,28 @@ export default function Home({ lang, setLang }) {
   const [search, setSearch] = useState('')
   const [subIndex, setSubIndex] = useState(0)
   const [fade, setFade] = useState(true)
+  const [raffles, setRaffles] = useState([])
+  const [stats, setStats] = useState({ activeRaffles: 0, minTicketPrice: 1, countries: 0 })
   const t = copy[lang] || copy.en
+
+  useEffect(() => {
+    const fetchRaffles = async () => {
+      const { data } = await supabase
+        .from('raffles')
+        .select('*, properties(name, city, country, images, beds, baths, max_guests, description_en, description_es, amenities)')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(6)
+
+      if (data && data.length > 0) {
+        setRaffles(data)
+        const countries = new Set(data.map(r => r.properties?.country).filter(Boolean)).size
+        const minPrice = Math.min(...data.map(r => r.ticket_price))
+        setStats({ activeRaffles: data.length, minTicketPrice: minPrice, countries: countries || 1 })
+      }
+    }
+    fetchRaffles()
+  }, [])
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -85,7 +106,7 @@ export default function Home({ lang, setLang }) {
         setSubIndex(i => (i + 1) % SUBS[lang === 'es' ? 'es' : 'en'].length)
         setFade(true)
       }, 400)
-    }, 4000)
+    }, 7000)
     return () => clearInterval(interval)
   }, [lang])
 
@@ -163,10 +184,10 @@ export default function Home({ lang, setLang }) {
         flexWrap: 'wrap',
       }}>
         {[
-          { val: STATS.activeRaffles, label: t.stat1 },
-          { val: `$${STATS.minTicketPrice}`, label: t.stat2 },
+          { val: stats.activeRaffles, label: t.stat1 },
+          { val: `$${stats.minTicketPrice}`, label: t.stat2 },
           { val: '100%', label: t.stat3 },
-          { val: STATS.countries, label: t.stat4 },
+          { val: stats.countries, label: t.stat4 },
         ].map((s, i) => (
           <div key={i} style={{ textAlign: 'center' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 600, color: 'var(--text)' }}>{s.val}</div>
@@ -182,7 +203,11 @@ export default function Home({ lang, setLang }) {
           <Link href="/raffles" style={{ fontSize: 13, color: 'var(--brand)', textDecoration: 'none' }}>{t.seeAll}</Link>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
-          {RAFFLES.map(r => <RaffleCard key={r.id} raffle={r} lang={lang} />)}
+          {raffles.length === 0 ? (
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 13 }}>
+              {lang === 'es' ? 'Cargando rifas activas...' : 'Loading active raffles...'}
+            </div>
+          ) : raffles.map(r => <RaffleCard key={r.id} raffle={r} lang={lang} />)}
         </div>
       </section>
 
