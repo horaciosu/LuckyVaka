@@ -30,7 +30,7 @@ const PROPERTY_TYPES = [
 ]
 
 const empty = {
-  name: '', property_type: '', address: '', city: '', state: '', country: 'México',
+  name: '', property_type: '', address: '', city: '', state: '', zip_code: '', country: 'México',
   beds: 2, baths: 1, guests: 4,
   amenities: [],
   description_es: '', description_en: '',
@@ -94,11 +94,11 @@ export default function MyProperties({ lang, setLang }) {
   }
 
   const handleSave = async () => {
-    const { data: { session: freshSession } } = await supabase.auth.getSession()
-    const freshUserId = freshSession?.user?.id
     if (!validate()) return
     setSaving(true)
     setSaveMsg(null)
+    const { data: { session: freshSession } } = await supabase.auth.getSession()
+    const freshUserId = freshSession?.user?.id
 
     const payload = {
       ...form,
@@ -122,7 +122,7 @@ export default function MyProperties({ lang, setLang }) {
         type: 'success',
         text: t('Property saved successfully!', '¡Propiedad guardada correctamente!')
       })
-      await loadProperties(user.id)
+      await loadProperties(freshUserId)
       setTimeout(() => { setView('list'); setForm(empty); setEditing(null); setSaveMsg(null) }, 1500)
     }
     setSaving(false)
@@ -135,6 +135,7 @@ export default function MyProperties({ lang, setLang }) {
       address: prop.address || '',
       city: prop.city || '',
       state: prop.state || '',
+      zip_code: prop.zip_code || '',
       country: prop.country || 'México',
       beds: prop.beds || 2,
       baths: prop.baths || 1,
@@ -145,7 +146,7 @@ export default function MyProperties({ lang, setLang }) {
       house_rules: prop.house_rules || '',
       checkin_time: prop.checkin_time || '15:00',
       checkout_time: prop.checkout_time || '11:00',
-      images: typeof prop.images === 'string' ? prop.images.replace(/[{}'"]/g,'').split(',').filter(Boolean) : (prop.images || []),
+      images: prop.images || [],
       status: prop.status || 'pending',
     })
     setEditing(prop.id)
@@ -181,8 +182,7 @@ export default function MyProperties({ lang, setLang }) {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div>
-            <div style={{ marginBottom: 12 }}><a href='/host' style={{ fontSize: 13, color: 'var(--brand)', textDecoration: 'none' }}>← {lang === 'es' ? 'Volver al panel' : 'Back to dashboard'}</a></div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
               🏡 {t('My properties', 'Mis propiedades')}
             </h1>
             <p style={{ fontSize: 13, color: 'var(--muted)' }}>
@@ -220,7 +220,6 @@ export default function MyProperties({ lang, setLang }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {properties.map(p => (
                   <div key={p.id} className="card" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                    {/* Thumbnail */}
                     <div style={{ width: 72, height: 72, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: 'var(--bg)' }}>
                       {p.images?.[0] ? (
                         <img src={p.images[0]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -228,16 +227,14 @@ export default function MyProperties({ lang, setLang }) {
                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🏡</div>
                       )}
                     </div>
-                    {/* Info */}
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 3 }}>{p.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>📍 {p.city}, {p.country}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>📍 {p.city}{p.zip_code ? ` ${p.zip_code}` : ''}, {p.country}</div>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                         {statusBadge(p.status)}
                         <span style={{ fontSize: 11, color: 'var(--muted)' }}>🛏 {p.beds} · 🚿 {p.baths} · 👥 {p.guests}</span>
                       </div>
                     </div>
-                    {/* Actions */}
                     <button onClick={() => handleEdit(p)} className="btn-secondary" style={{ fontSize: 12, padding: '6px 14px', flexShrink: 0 }}>
                       ✏️ {t('Edit', 'Editar')}
                     </button>
@@ -283,11 +280,18 @@ export default function MyProperties({ lang, setLang }) {
                 <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>{t('Full address', 'Dirección completa')} *</label>
                 <input {...inp('address')} placeholder="Calle Mar de Cortés 123, Col. Centro" />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              {/* Ciudad, CP, Estado, País */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>{t('City', 'Ciudad')} *</label>
                   <input {...inp('city')} placeholder="San Carlos" />
                 </div>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>{t('ZIP / Postal code', 'Código postal')}</label>
+                  <input {...inp('zip_code')} placeholder="85506" />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>{t('State', 'Estado')}</label>
                   <input {...inp('state')} placeholder="Sonora" />
