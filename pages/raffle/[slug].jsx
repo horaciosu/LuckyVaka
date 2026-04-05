@@ -262,7 +262,7 @@ export default function RafflePage({ lang, setLang }) {
                 📍 {t('Location', 'Ubicación')}
               </div>
               <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>{property?.city}{property?.state ? `, ${property.state}` : ''}, {property?.country}</div>
+                {property?.address ? `${property.address}, ` : ''}{property?.city}{property?.state ? `, ${property.state}` : ''}, {property?.country}
               </div>
               <div style={{ borderRadius: 8, overflow: 'hidden', height: 200 }}>
                 <PropertyMap
