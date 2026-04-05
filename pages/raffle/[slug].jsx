@@ -131,9 +131,19 @@ export default function RafflePage({ lang, setLang }) {
             <div className="card" style={{marginBottom:16}}><div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:8}}>{t('About this stay','Sobre la estancia')}</div><p style={{fontSize:13,color:'var(--muted)',lineHeight:1.7,margin:0}}>{lang==='es'?(property?.description_es||'—'):(property?.description_en||property?.description_es||'—')}</p></div>
             <div className="card" style={{marginBottom:16}}>
               <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:12}}>🗓 {t('Stay details','Detalles de la estancia')}</div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-            <div className="card" style={{marginBottom:16}}><div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:12}}>🗓 {t("Stay details","Detalles de la estancia")}</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{[["🟢",t("Check-in","Entrada"),formatDate(raffle.stay_date)],["🔴",t("Check-out","Salida"),formatDate(raffle.checkout_date)],["🎯",t("Draw date","Fecha del sorteo"),formatDate(raffle.draw_date)]].map(([icon,label,val])=><div key={label} style={{background:"var(--bg)",borderRadius:8,padding:"10px 12px"}}><div style={{fontSize:10,color:"var(--muted)",marginBottom:3}}>{icon} {label}</div><div style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{val}</div></div>)}</div></div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+                {[
+                  ['🟢',t('Check-in','Entrada'),formatDate(raffle.stay_date)],
+                  ['🔴',t('Check-out','Salida'),formatDate(raffle.checkout_date)],
+                  ['🎯',t('Draw date','Fecha del sorteo'),formatDate(raffle.draw_date)]
+                ].map(([icon,label,val])=>(
+                  <div key={label} style={{background:'var(--bg)',borderRadius:8,padding:'10px 12px'}}>
+                    <div style={{fontSize:10,color:'var(--muted)',marginBottom:3}}>{icon} {label}</div>
+                    <div style={{fontSize:13,fontWeight:500,color:'var(--text)'}}>{val}</div>
+                  </div>
+                ))}
               </div>
+            </div>
             </div>
             {property?.house_rules&&<div className="card" style={{marginBottom:16}}><div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:8}}>📋 {t('House rules','Reglas de la casa')}</div><p style={{fontSize:13,color:'var(--muted)',lineHeight:1.7,margin:0}}>{property.house_rules}</p></div>}
             <div className="card"><div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:12}}>📍 {t('Location & nearby','Ubicación y alrededores')}</div><PropertyMap location={`${property?.city||''}, ${property?.country||''}`} lang={lang} apiKey="AIzaSyCI5qOJqVrvT1HEhaaQ4vcUi5Lb01uOf70"/></div>
