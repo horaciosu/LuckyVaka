@@ -168,7 +168,7 @@ export default function RafflePage({ lang, setLang }) {
         }
       `}</style>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 24px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px' }}>
         <Link href="/raffles" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 20 }}>
           ← {t('Back', 'Regresar')}
         </Link>
