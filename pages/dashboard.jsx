@@ -16,9 +16,10 @@ export default function DashboardPage({ lang, setLang }) {
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <Navbar lang={lang} setLang={setLang} />
 
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '24px 16px'' }}>
-        <a href="/host" style={{ fontSize: 13, color: "var(--muted)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16 }}>← {lang === "es" ? "Panel anfitrión" : "Host panel"}</a>
-        <a href="/host" style={{ fontSize: 13, color: "var(--muted)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16 }}>← {lang === "es" ? "Panel anfitrión" : "Host panel"}</a>
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '24px 16px' }}>
+        <a href="/host" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
+          ← {lang === 'es' ? 'Panel anfitrión' : 'Host panel'}
+        </a>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
           <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, color: '#185FA5' }}>CM</div>
