@@ -234,6 +234,7 @@ export default function HostPage({ lang, setLang }) {
     { id: 'new', icon: '➕', label: lang === 'es' ? 'Nueva rifa' : 'New raffle' },
     { id: 'raffles', icon: '🎟', label: lang === 'es' ? 'Mis rifas' : 'My raffles' },
     { id: 'earnings', icon: '💰', label: lang === 'es' ? 'Ganancias' : 'Earnings' },
+    { id: 'account', icon: '👤', label: lang === 'es' ? 'Mi cuenta' : 'My account', href: '/dashboard' },
   ]
 
   return (

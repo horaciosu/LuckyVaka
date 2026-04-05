@@ -178,6 +178,7 @@ export default function MyProperties({ lang, setLang }) {
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <Navbar lang={lang} setLang={setLang} />
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '32px 20px' }}>
+        <a href="/host" style={{ fontSize: 13, color: "var(--muted)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16 }}>← {lang === "es" ? "Panel anfitrión" : "Host panel"}</a>
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
