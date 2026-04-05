@@ -132,7 +132,6 @@ export default function RafflePage({ lang, setLang }) {
             <div className="card" style={{marginBottom:16}}>
               <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:12}}>🗓 {t('Stay details','Detalles de la estancia')}</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                {[['🟢',t('Check-in','Entrada'),formatDate(raffle.stay_date)],['🔴',t('Check-out','Salida'),formatDate(raffle.checkout_date)],['🎯',t('Draw date','Fecha del sorteo'),formatDate(raffle.draw_date)],['🧹',t('Cleaning fee','Limpieza'),cleaningFee>0?`${cleaningFee} ${raffle.currency}`:t('Included','Incluida')]].map(([icon,label,val])=><div key={label} style={{background:'var(--bg)',borderRadius:8,padding:'10px 12px'}}><div style={{fontSize:10,color:'var(--muted)',marginBottom:3}}>{icon} {label}</div><div style={{fontSize:13,fontWeight:500,color:'var(--text)'}}>{val}</div></div>)}
               </div>
             </div>
             {property?.house_rules&&<div className="card" style={{marginBottom:16}}><div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:8}}>📋 {t('House rules','Reglas de la casa')}</div><p style={{fontSize:13,color:'var(--muted)',lineHeight:1.7,margin:0}}>{property.house_rules}</p></div>}
@@ -153,7 +152,6 @@ export default function RafflePage({ lang, setLang }) {
               </div>
               <div style={{marginBottom:16,paddingBottom:16,borderBottom:'1px solid var(--border)'}}>
                 <div style={{display:'flex',alignItems:'baseline',gap:6,marginBottom:6}}><span style={{fontSize:26,fontWeight:700,color:'var(--text)'}}>{raffle.ticket_price}</span><span style={{fontSize:14,color:'var(--muted)'}}>{raffle.currency}</span><span style={{fontSize:11,color:'var(--muted)'}}>{t('/ ticket','/ boleto')}</span></div>
-                <div style={{fontSize:12,color:'var(--brand)',fontWeight:600,background:'rgba(74,144,226,0.08)',borderRadius:6,padding:'5px 10px',display:'inline-block'}}>🏆 {prize} {raffle.currency} {t('prize pool','en juego')}</div>
               </div>
               <div style={{marginBottom:14}}>
                 <div style={{fontSize:12,color:'var(--muted)',marginBottom:8,fontWeight:500}}>{t('How many tickets?','¿Cuántos boletos?')}</div>
@@ -173,7 +171,7 @@ export default function RafflePage({ lang, setLang }) {
               </div>
               <div style={{background:'var(--bg)',borderRadius:10,padding:'12px',marginBottom:14,fontSize:12}}>
                 <div style={{display:'flex',justifyContent:'space-between',color:'var(--muted)',marginBottom:4}}><span>{qty} × {raffle.ticket_price} {raffle.currency}</span><span>{subtotal.toFixed(2)}</span></div>
-                {cleaningFee>0&&<div style={{display:'flex',justifyContent:'space-between',color:'var(--muted)',marginBottom:4}}><span>🧹 {t('Cleaning','Limpieza')}</span><span>{cleaningFee}</span></div>}
+                
                 <div style={{display:'flex',justifyContent:'space-between',color:'var(--muted)',marginBottom:8}}><span>{t('Fee (10%)','Comisión (10%)')}</span><span>{fee}</span></div>
                 <div style={{display:'flex',justifyContent:'space-between',fontSize:14,fontWeight:700,color:'var(--text)',borderTop:'1px solid var(--border)',paddingTop:8}}><span>Total</span><span>{total} {raffle.currency}</span></div>
               </div>
