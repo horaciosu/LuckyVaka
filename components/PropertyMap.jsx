@@ -80,8 +80,8 @@ export default function PropertyMap({ location, coordinates, lang = 'en', apiKey
     const infoWindow = new window.google.maps.InfoWindow({
       content: `
         <div style="font-family:sans-serif;padding:4px 2px;">
-          <div style="font-weight:600;font-size:13px;color:#1A1916;margin-bottom:2px;">📍 ${location || 'Property'}</div>
-          <div style="font-size:11px;color:#6B6860;">${lang === 'es' ? 'Tu propiedad' : 'Your property'}</div>
+          <div style="font-weight:600;font-size:13px;color:#1A1916;margin-bottom:2px;">🏡 ${lang === 'es' ? 'Zona de la propiedad' : 'Property area'}</div>
+          <div style="font-size:11px;color:#6B6860;">${lang === 'es' ? 'Dirección exacta después de reservar' : 'Exact address shared after booking'}</div>
         </div>
       `,
     })
@@ -209,10 +209,12 @@ export default function PropertyMap({ location, coordinates, lang = 'en', apiKey
         <div ref={mapRef} style={{ height: 320, width: '100%' }} />
       </div>
 
-      {/* Coordinates note */}
-      <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span>📍</span>
-        <span>{lang === 'es' ? 'Ubicación aproximada de la zona — dirección exacta solo para ganadores' : 'Approximate area location — exact address shared with winners only'}</span>
+      {/* Privacy note */}
+      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10, lineHeight: 1.5 }}>
+        🔒 {lang === 'es'
+          ? <>La ubicación de este anuncio está verificada. Se indicará la ubicación exacta después de reservar. <a href="#" style={{ color: 'var(--brand)', textDecoration: 'underline' }}>Más información sobre la verificación.</a></>
+          : <>The location of this listing is verified. The exact location will be provided after booking. <a href="#" style={{ color: 'var(--brand)', textDecoration: 'underline' }}>Learn more about verification.</a></>
+        }
       </div>
     </div>
   )
