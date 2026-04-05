@@ -234,7 +234,7 @@ export default function HostPage({ lang, setLang }) {
     { id: 'new', icon: '➕', label: lang === 'es' ? 'Nueva rifa' : 'New raffle' },
     { id: 'raffles', icon: '🎟', label: lang === 'es' ? 'Mis rifas' : 'My raffles' },
     { id: 'earnings', icon: '💰', label: lang === 'es' ? 'Ganancias' : 'Earnings' },
-    { id: 'account', icon: '👤', label: lang === 'es' ? 'Mi cuenta' : 'My account', href: '/dashboard' },
+    
   ]
 
   return (
@@ -255,6 +255,7 @@ export default function HostPage({ lang, setLang }) {
         <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
           {tabs.map(t => (
             <button key={t.id} onClick={() => {
+              if (t.id === 'account') { router.push('/dashboard'); return }
               if (t.id !== 'new') resetForm()
               setActiveTab(t.id)
             }} style={{
@@ -712,7 +713,8 @@ export default function HostPage({ lang, setLang }) {
                 </table>
               )}
             </div>
-            <button onClick={() => { resetForm(); setActiveTab('new') }} className="btn-primary" style={{ marginTop: 16 }}>
+            <button onClick={() => {
+              if (t.id === 'account') { router.push('/dashboard'); return } resetForm(); setActiveTab('new') }} className="btn-primary" style={{ marginTop: 16 }}>
               + {lang === 'es' ? 'Crear nueva rifa' : 'Create new raffle'}
             </button>
           </div>
