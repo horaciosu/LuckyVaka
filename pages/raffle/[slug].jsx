@@ -89,7 +89,7 @@ export default function RafflePage({ lang, setLang }) {
   const toggleNum = (n) => {
     if (taken.has(n)) return
     const next = new Set(selected)
-    if (next.has(n)) { next.delete(n) }
+    if (next.has(n)) { next.delete(n) } 
     else {
       if (next.size >= qty) { const first = [...next][0]; next.delete(first) }
       next.add(n)
@@ -144,21 +144,36 @@ export default function RafflePage({ lang, setLang }) {
   const images = property?.images || []
   const amenities = property?.amenities || []
   const amenityLabels = lang === 'es' ? AMENITY_LABELS_ES : AMENITY_LABELS_EN
-
-  // FIX 5: mostrar todos los boletos, no solo 100
-  const totalToShow = raffle.total_tickets
+  const prize = (raffle.ticket_price * raffle.total_tickets * 0.77).toFixed(0)
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <Navbar lang={lang} setLang={setLang} />
 
-      {/* FIX 6: layout 55/45 en lugar de 1fr/320px — panel derecho más grande */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }}>
+      {/* Responsive styles */}
+      <style>{`
+        .raffle-grid {
+          display: grid;
+          grid-template-columns: 1fr 320px;
+          gap: 24px;
+          align-items: start;
+        }
+        @media (max-width: 768px) {
+          .raffle-grid {
+            grid-template-columns: 1fr;
+          }
+          .raffle-panel {
+            position: static !important;
+          }
+        }
+      `}</style>
+
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 24px' }}>
         <Link href="/raffles" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 20 }}>
           ← {t('Back', 'Regresar')}
         </Link>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: 28, alignItems: 'start' }}>
+        <div className="raffle-grid">
 
           {/* LEFT */}
           <div>
@@ -213,34 +228,31 @@ export default function RafflePage({ lang, setLang }) {
               </div>
             )}
 
-            {/* FIX 1: Descripción — solo mostrar si hay contenido */}
-            {(property?.description_es || property?.description_en) && (
-              <div className="card" style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
-                  {t('About this stay', 'Sobre la estancia')}
-                </div>
-                <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.7, margin: 0 }}>
-                  {lang === 'es' ? (property?.description_es || property?.description_en) : (property?.description_en || property?.description_es)}
-                </p>
+            {/* Description */}
+            <div className="card" style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+                {t('About this stay', 'Sobre la estancia')}
               </div>
-            )}
+              <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.7, margin: 0 }}>
+                {lang === 'es' ? (property?.description_es || '—') : (property?.description_en || property?.description_es || '—')}
+              </p>
+            </div>
 
-            {/* FIX 2: Stay details — checkout_time desde property */}
+            {/* Stay details */}
             <div className="card" style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
                 🗓 {t('Stay details', 'Detalles de la estancia')}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {[
-                  ['🟢', t('Check-in', 'Entrada'), formatDate(raffle.stay_date), property?.checkin_time || ''],
-                  ['🔴', t('Check-out', 'Salida'), formatDate(raffle.checkout_date), property?.checkout_time || ''],
-                  ['🎯', t('Draw date', 'Fecha del sorteo'), formatDate(raffle.draw_date), ''],
-                  ['🧹', t('Cleaning fee', 'Limpieza'), cleaningFee > 0 ? `${cleaningFee} ${raffle.currency}` : t('Included', 'Incluida'), ''],
-                ].map(([icon, label, val, time]) => (
+                  ['🟢', t('Check-in', 'Entrada'), formatDate(raffle.stay_date)],
+                  ['🔴', t('Check-out', 'Salida'), formatDate(raffle.checkout_date)],
+                  ['🎯', t('Draw date', 'Fecha del sorteo'), formatDate(raffle.draw_date)],
+                  ['🧹', t('Cleaning fee', 'Limpieza'), cleaningFee > 0 ? `${cleaningFee} ${raffle.currency}` : t('Included', 'Incluida')],
+                ].map(([icon, label, val]) => (
                   <div key={label} style={{ background: 'var(--bg)', borderRadius: 8, padding: '10px 12px' }}>
                     <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>{icon} {label}</div>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{val}</div>
-                    {time && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{time}</div>}
                   </div>
                 ))}
               </div>
@@ -256,34 +268,29 @@ export default function RafflePage({ lang, setLang }) {
               </div>
             )}
 
-            {/* FIX 3: Mapa compacto */}
+            {/* Map */}
             <div className="card">
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
-                📍 {t('Location', 'Ubicación')}
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
+                📍 {t('Location & nearby', 'Ubicación y alrededores')}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>
-                {property?.address ? `${property.address}, ` : ''}{property?.city}{property?.state ? `, ${property.state}` : ''}, {property?.country}
-              </div>
-              <div style={{ borderRadius: 8, overflow: 'hidden', height: 200 }}>
-                <PropertyMap
-                  location={property?.address ? `${property.address}, ${property?.city}, ${property?.country}` : `${property?.city || ''}, ${property?.country || ''}`}
-                  lang={lang}
-                  apiKey="AIzaSyCI5qOJqVrvT1HEhaaQ4vcUi5Lb01uOf70"
-                />
-              </div>
+              <PropertyMap
+                location={`${property?.city || ''}, ${property?.country || ''}`}
+                lang={lang}
+                apiKey="AIzaSyCI5qOJqVrvT1HEhaaQ4vcUi5Lb01uOf70"
+              />
             </div>
           </div>
 
-          {/* RIGHT — sticky, más ancho */}
-          <div style={{ position: 'sticky', top: 80 }}>
+          {/* RIGHT — sticky */}
+          <div className="raffle-panel" style={{ position: 'sticky', top: 80 }}>
             {/* Countdown */}
             <div className="card" style={{ textAlign: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 10 }}>{t('Draw in', 'Sorteo en')}</div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
                 {[[countdown.d, t('days','días')],[countdown.h,'hrs'],[countdown.m,'min'],[countdown.s,'sec']].map(([val, label], i) => (
                   <div key={i} style={{ textAlign: 'center' }}>
-                    <div className="countdown-digit" style={{ fontSize: 28, fontWeight: 700 }}>{pad(val)}</div>
-                    <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>{label}</div>
+                    <div className="countdown-digit">{pad(val)}</div>
+                    <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 2 }}>{label}</div>
                   </div>
                 ))}
               </div>
@@ -301,67 +308,73 @@ export default function RafflePage({ lang, setLang }) {
               </div>
             </div>
 
-            {/* FIX 4: Precio sin "en juego" */}
-            <div style={{ marginBottom: 14 }}>
-              <span style={{ fontSize: 26, fontWeight: 700, color: 'var(--text)' }}>{raffle.ticket_price} {raffle.currency}</span>
-              <div style={{ fontSize: 11, color: 'var(--muted)' }}>{t('per ticket','por boleto')}</div>
+            {/* Price */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+              <div>
+                <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>{raffle.ticket_price} {raffle.currency}</span>
+                <div style={{ fontSize: 10, color: 'var(--muted)' }}>{t('per ticket','por boleto')}</div>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--brand)', fontWeight: 500 }}>
+                {prize} {raffle.currency} {t('prize','en juego')}
+              </div>
             </div>
 
             {/* Qty */}
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>{t('How many tickets?','¿Cuántos boletos?')}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                <button onClick={() => setQty(q => Math.max(1, q-1))} style={{ width:36,height:36,borderRadius:8,border:'1px solid var(--border)',background:'transparent',fontSize:20,cursor:'pointer',color:'var(--text)',display:'flex',alignItems:'center',justifyContent:'center' }}>−</button>
-                <span style={{ fontSize:20,fontWeight:600,minWidth:28,textAlign:'center' }}>{qty}</span>
-                <button onClick={() => setQty(q => Math.min(20, q+1))} style={{ width:36,height:36,borderRadius:8,border:'1px solid var(--border)',background:'transparent',fontSize:20,cursor:'pointer',color:'var(--text)',display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
+                <button onClick={() => setQty(q => Math.max(1, q-1))} style={{ width:32,height:32,borderRadius:8,border:'1px solid var(--border)',background:'transparent',fontSize:18,cursor:'pointer',color:'var(--text)',display:'flex',alignItems:'center',justifyContent:'center' }}>−</button>
+                <span style={{ fontSize:18,fontWeight:600,minWidth:28,textAlign:'center' }}>{qty}</span>
+                <button onClick={() => setQty(q => Math.min(20, q+1))} style={{ width:32,height:32,borderRadius:8,border:'1px solid var(--border)',background:'transparent',fontSize:18,cursor:'pointer',color:'var(--text)',display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
                 <span style={{ fontSize:11,color:'var(--muted)' }}>{qty} {t('in','en')} {raffle.total_tickets}</span>
               </div>
               <div style={{ display:'flex',gap:5,flexWrap:'wrap' }}>
                 {[1,3,5,10,20].map(n => (
-                  <button key={n} onClick={() => setQty(n)} style={{ fontSize:12,padding:'5px 12px',borderRadius:6,cursor:'pointer',border:'1px solid var(--border)',background:qty===n?'var(--brand)':'transparent',color:qty===n?'#fff':'var(--muted)' }}>×{n}</button>
+                  <button key={n} onClick={() => setQty(n)} style={{ fontSize:11,padding:'4px 10px',borderRadius:6,cursor:'pointer',border:'1px solid var(--border)',background:qty===n?'var(--brand)':'transparent',color:qty===n?'#fff':'var(--muted)' }}>×{n}</button>
                 ))}
               </div>
             </div>
 
-            {/* FIX 5: Number picker — mostrar todos los boletos con scroll */}
+            {/* Number picker */}
             <div style={{ marginBottom: 14 }}>
               <div style={{ fontSize:12,color:'var(--muted)',marginBottom:8 }}>
                 {t('Pick your numbers','Elige tus números')} <span style={{ color:'var(--brand)',fontSize:10 }}>({selected.size} {t('selected','seleccionados')})</span>
               </div>
-              <div style={{ display:'flex',flexWrap:'wrap',gap:4,maxHeight:160,overflowY:'auto' }}>
-                {Array.from({length: totalToShow},(_,i)=>i+1).map(n => (
+              <div style={{ display:'flex',flexWrap:'wrap',gap:4,maxHeight:120,overflowY:'auto' }}>
+                {Array.from({length: Math.min(raffle.total_tickets, 100)},(_,i)=>i+1).map(n => (
                   <button key={n} onClick={() => toggleNum(n)} className={`ticket-chip ${taken.has(n)?'taken':''} ${selected.has(n)?'selected':''}`}>{n}</button>
                 ))}
+                {raffle.total_tickets > 100 && <span style={{ fontSize:10,color:'var(--muted)',alignSelf:'center',padding:'0 4px' }}>+{raffle.total_tickets-100} {t('more','más')}</span>}
               </div>
             </div>
 
             {/* Summary */}
-            <div style={{ background:'#F4F3EF',borderRadius:8,padding:'12px 14px',marginBottom:12 }}>
-              <div style={{ display:'flex',justifyContent:'space-between',fontSize:13,color:'var(--muted)',marginBottom:4 }}>
+            <div style={{ background:'#F4F3EF',borderRadius:8,padding:'10px 12px',marginBottom:12 }}>
+              <div style={{ display:'flex',justifyContent:'space-between',fontSize:12,color:'var(--muted)',marginBottom:4 }}>
                 <span>{qty} × {raffle.ticket_price} {raffle.currency}</span><span>{subtotal.toFixed(2)}</span>
               </div>
               {cleaningFee > 0 && (
-                <div style={{ display:'flex',justifyContent:'space-between',fontSize:13,color:'var(--muted)',marginBottom:4 }}>
+                <div style={{ display:'flex',justifyContent:'space-between',fontSize:12,color:'var(--muted)',marginBottom:4 }}>
                   <span>🧹 {t('Cleaning fee','Limpieza')}</span><span>{cleaningFee}</span>
                 </div>
               )}
-              <div style={{ display:'flex',justifyContent:'space-between',fontSize:13,color:'var(--muted)',marginBottom:6 }}>
+              <div style={{ display:'flex',justifyContent:'space-between',fontSize:12,color:'var(--muted)',marginBottom:6 }}>
                 <span>{t('Platform fee (10%)','Comisión (10%)')}</span><span>{fee}</span>
               </div>
-              <div style={{ display:'flex',justifyContent:'space-between',fontSize:15,fontWeight:600,color:'var(--text)',borderTop:'1px solid var(--border)',paddingTop:6 }}>
+              <div style={{ display:'flex',justifyContent:'space-between',fontSize:14,fontWeight:600,color:'var(--text)',borderTop:'1px solid var(--border)',paddingTop:6 }}>
                 <span>Total</span><span>{total} {raffle.currency}</span>
               </div>
             </div>
 
-            <button onClick={pickRandom} style={{ width:'100%',background:'transparent',border:'1px solid var(--border)',borderRadius:8,padding:'10px',fontSize:13,cursor:'pointer',color:'var(--muted)',marginBottom:8 }}>
+            <button onClick={pickRandom} style={{ width:'100%',background:'transparent',border:'1px solid var(--border)',borderRadius:8,padding:'9px',fontSize:12,cursor:'pointer',color:'var(--muted)',marginBottom:8 }}>
               🍀 {t('Pick for me','Elige por mí')}
             </button>
 
-            <Link href={`/checkout?raffle=${raffle.slug}&qty=${qty}&tickets=${[...selected].join(',')}`} className="btn-primary" style={{ width:'100%',justifyContent:'center',marginBottom:8,fontSize:15 }}>
+            <Link href={`/checkout?raffle=${raffle.slug}&qty=${qty}&tickets=${[...selected].join(',')}`} className="btn-primary" style={{ width:'100%',justifyContent:'center',marginBottom:8,fontSize:14 }}>
               🔒 {lang === 'es' ? `Comprar — ${total} ${raffle.currency}` : `Buy tickets — ${total} ${raffle.currency}`}
             </Link>
 
-            <div style={{ fontSize:11,color:'var(--muted)',textAlign:'center',lineHeight:1.5 }}>
+            <div style={{ fontSize:10,color:'var(--muted)',textAlign:'center',lineHeight:1.5 }}>
               ✓ {t('Guaranteed winner · Full refund if minimum not reached','Ganador garantizado · Reembolso si no se alcanza el mínimo')}
             </div>
           </div>
