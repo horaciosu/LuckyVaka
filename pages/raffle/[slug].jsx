@@ -195,6 +195,5 @@ export default function RafflePage({ lang, setLang }) {
           </div>
         </div>
       </div>
-    </div>
   )
 }
