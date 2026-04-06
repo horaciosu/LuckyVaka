@@ -188,7 +188,7 @@ export default function RafflePage({ lang, setLang }) {
                 className="btn-primary"
                 style={{width:'100%',justifyContent:'center',marginBottom:8,fontSize:14,fontWeight:600,borderRadius:10,padding:'12px'}}
               >
-                {lang==='es' ? \`Comprar — \${total} \${raffle.currency}\` : \`Buy tickets — \${total} \${raffle.currency}\`}
+                {lang==='es' ? `Comprar — ${total} ${raffle.currency}` : `Buy tickets — ${total} ${raffle.currency}`}
               </button>
               <div style={{fontSize:10,color:'var(--muted)',textAlign:'center',lineHeight:1.6}}>✓ {t('Guaranteed winner · Full refund if not funded','Ganador garantizado · Reembolso si no se activa')}</div>
             </div>
