@@ -86,8 +86,7 @@ export default function RafflePage({ lang, setLang }) {
     const tick=()=>{const diff=target-new Date();if(diff<=0){setCountdown({d:0,h:0,m:0,s:0});return};setCountdown({d:Math.floor(diff/86400000),h:Math.floor((diff%86400000)/3600000),m:Math.floor((diff%3600000)/60000),s:Math.floor((diff%60000)/1000)})}
     tick();const id=setInterval(tick,1000);return()=>clearInterval(id)
   },[raffle?.draw_date])
-  const taken=new Set()
-  if(raffle){for(let i=1;i<=(raffle.tickets_sold||0);i++){taken.add((i*7+13)%raffle.total_tickets+1)}}
+  const taken = new Set(raffle?.sold_tickets || [])
   const toggleNum=(n)=>{if(taken.has(n))return;const next=new Set(selected);if(next.has(n)){next.delete(n)}else{if(next.size>=qty){const first=[...next][0];next.delete(first)};next.add(n)};setSelected(next)}
   const pickRandom=()=>{if(!raffle)return;const avail=[];for(let i=1;i<=raffle.total_tickets;i++){if(!taken.has(i))avail.push(i)};avail.sort(()=>Math.random()-0.5);setSelected(new Set(avail.slice(0,qty)))}
   const pad=n=>String(n).padStart(2,'0')
