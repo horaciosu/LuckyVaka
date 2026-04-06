@@ -159,7 +159,7 @@ export default function Navbar({ lang, setLang }) {
                   role === 'host'
                     ? { href: '/my-properties', label: lang === 'es' ? 'Mis propiedades' : 'My properties', icon: '🏠' }
                     : { href: '/dashboard', label: lang === 'es' ? 'Mi cuenta' : 'My account', icon: '👤' },
-                  { href: role === 'host' ? '/host?tab=account' : '/dashboard?tab=account', label: lang === 'es' ? 'Editar perfil' : 'Edit profile', icon: '✏️' },
+                  { href: '/profile', label: lang === 'es' ? 'Editar perfil' : 'Edit profile', icon: '✏️' },
                 ].map(item => (
                   <Link key={item.href + item.label} href={item.href} onClick={() => setMenuOpen(false)} style={{
                     display: 'flex', alignItems: 'center', gap: 8,
