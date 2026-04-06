@@ -98,7 +98,8 @@ export default function Checkout({ lang, setLang }) {
           raffleDate: raffle.draw_date,
           stayDate: raffle.stay_date,
           raffleId: raffle.id,
-
+        }),
+      }).catch(() => {})
       setStep('success')
     } catch (err) {
       setPayError(t('Connection error. Please try again.', 'Error de conexión. Intenta de nuevo.'))
