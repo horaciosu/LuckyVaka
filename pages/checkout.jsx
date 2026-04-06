@@ -22,7 +22,7 @@ export default function Checkout({ lang, setLang }) {
   const [errors, setErrors] = useState({})
   const [terms, setTerms] = useState(false)
 
-  const { user } = useAuth({ required: true, redirectTo: '/login' })
+  const { user, loading: authLoading } = useAuth({ required: true, redirectTo: '/login' })
   const t = (en, es) => lang === 'es' ? es : en
 
   useEffect(() => {
@@ -109,6 +109,7 @@ export default function Checkout({ lang, setLang }) {
     }
   }
 
+  if (authLoading) return null
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <Navbar lang={lang} setLang={setLang} />
