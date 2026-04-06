@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Navbar from '../../components/Navbar'
 import PropertyMap from '../../components/PropertyMap'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../lib/useAuth'
 
 const AMENITY_ICONS = { wifi:'📶',ac:'❄️',pool:'🏊',parking:'🚗',kitchen:'🍳',washer:'👕',tv:'📺',ocean:'🌊',beach:'🏖',bbq:'🔥',jacuzzi:'♨️',gym:'💪',security:'🔒',pets:'🐾',balcony:'🌅',garden:'🌿' }
 const AMENITY_LABELS_ES = { wifi:'Wi-Fi',ac:'A/C',pool:'Alberca',parking:'Estacionamiento',kitchen:'Cocina equipada',washer:'Lavadora',tv:'Smart TV',ocean:'Vista al mar',beach:'Acceso playa',bbq:'Asador',jacuzzi:'Jacuzzi',gym:'Gimnasio',security:'Seguridad',pets:'Mascotas OK',balcony:'Balcón',garden:'Jardín' }
@@ -72,6 +73,7 @@ export default function RafflePage({ lang, setLang }) {
   const [qty, setQty] = useState(1)
   const [selected, setSelected] = useState(new Set())
   const [countdown, setCountdown] = useState({d:0,h:0,m:0,s:0})
+  const { user } = useAuth()
   const t = (en,es) => lang==='es'?es:en
   useEffect(()=>{ if(!slug)return; loadRaffle() },[slug])
   const loadRaffle = async () => {
