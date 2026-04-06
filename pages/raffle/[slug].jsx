@@ -175,10 +175,10 @@ export default function RafflePage({ lang, setLang }) {
               </div>
               <div style={{marginBottom:14}}>
                 <div style={{fontSize:12,color:'var(--muted)',marginBottom:8,display:'flex',justifyContent:'space-between'}}><span style={{fontWeight:500}}>{t('Pick your numbers','Elige tus números')}</span><span style={{color:'var(--brand)',fontSize:11,fontWeight:600}}>{selected.size}/{qty}</span></div>
-              <div style={{display:'flex',flexWrap:'wrap',gap:4,maxHeight:160,overflowY:'auto',paddingRight:4}}>
+              <div style={{display:"flex",flexWrap:"wrap",gap:4,maxHeight:160,overflowY:"auto",paddingRight:4}}>
                 {Array.from({length:raffle.total_tickets},(_,i)=>i+1).map(n=>(
-                  <button key={n} onClick={()=>toggleNum(n)} className={`ticket-chip ${taken.has(n)?'taken':''} ${selected.has(n)?'selected':''}`}>{n}</button>
-                </div>
+                  <button key={n} onClick={()=>toggleNum(n)} className={"ticket-chip "+(taken.has(n)?"taken ":"")+(selected.has(n)?"selected":"")}>{n}</button>
+                ))}
               </div>
               <div style={{background:'var(--bg)',borderRadius:10,padding:'12px',marginBottom:14,fontSize:12}}>
                 <div style={{display:'flex',justifyContent:'space-between',color:'var(--muted)',marginBottom:4}}><span>{qty} × {raffle.ticket_price} {raffle.currency}</span><span>{subtotal.toFixed(2)}</span></div>
