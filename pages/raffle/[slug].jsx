@@ -190,8 +190,6 @@ export default function RafflePage({ lang, setLang }) {
               >
                 {lang==='es' ? \`Comprar — \${total} \${raffle.currency}\` : \`Buy tickets — \${total} \${raffle.currency}\`}
               </button>
-                🔒 {lang==='es'?`Comprar — ${total} ${raffle.currency}`:`Buy — ${total} ${raffle.currency}`}
-              </Link>
               <div style={{fontSize:10,color:'var(--muted)',textAlign:'center',lineHeight:1.6}}>✓ {t('Guaranteed winner · Full refund if not funded','Ganador garantizado · Reembolso si no se activa')}</div>
             </div>
           </div>
