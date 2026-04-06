@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // 1. Obtener rifa actual
   const { data: raffle, error: fetchError } = await supabase
     .from('raffles')
-    .select('id, total_tickets, tickets_sold, sold_tickets, min_tickets, status')
+    .select('id, total_tickets, tickets_sold, sold_tickets, min_tickets, status, currency')
     .eq('slug', raffle_slug)
     .single()
 
