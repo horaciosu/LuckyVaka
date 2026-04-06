@@ -91,7 +91,6 @@ export default function HostRegister({ lang, setLang }) {
   const [uploadErrors, setUploadErrors] = useState({})
   const fileRefs = useRef({})
 
-  const folio = `LV-${(form?.full_name || 'XXX').replace(/\s/g,'').substring(0,3).toUpperCase()}-${Date.now().toString().slice(-5)}`
 
   const [form, setForm] = useState({
     full_name: '', email: '', phone: '', country: 'México',
