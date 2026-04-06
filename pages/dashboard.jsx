@@ -1,49 +1,93 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '../components/Navbar'
+import { useAuth } from '../lib/useAuth'
+import { supabase } from '../lib/supabase'
 
 export default function DashboardPage({ lang, setLang }) {
+  const { user, loading, signOut, displayName, initials } = useAuth({ required: true, role: 'guest' })
   const [activeTab, setActiveTab] = useState('overview')
+  const [purchases, setPurchases] = useState([])
+  const [loadingData, setLoadingData] = useState(false)
+
+  const t = (en, es) => lang === 'es' ? es : en
 
   const tabs = [
-    { id: 'overview', icon: '🏠', label: 'Overview' },
-    { id: 'tickets', icon: '🎟', label: lang === 'es' ? 'Mis boletos' : 'My tickets' },
-    { id: 'won', icon: '🏆', label: lang === 'es' ? 'Ganadas' : 'Won stays' },
-    { id: 'notifications', icon: '🔔', label: lang === 'es' ? 'Notificaciones' : 'Notifications' },
+    { id: 'overview', icon: '🏠', label: t('Overview', 'Overview') },
+    { id: 'tickets', icon: '🎟', label: t('My tickets', 'Mis boletos') },
+    { id: 'won', icon: '🏆', label: t('Won stays', 'Ganadas') },
+    { id: 'notifications', icon: '🔔', label: t('Notifications', 'Notificaciones') },
   ]
+
+  // Cargar compras del usuario desde Supabase
+  useEffect(() => {
+    if (!user) return
+    loadPurchases()
+  }, [user])
+
+  const loadPurchases = async () => {
+    setLoadingData(true)
+    const { data, error } = await supabase
+      .from('purchases')
+      .select('*, raffles(slug, draw_date, stay_date, ticket_price, currency, properties(name, city, country))')
+      .eq('buyer_email', user.email)
+      .order('created_at', { ascending: false })
+
+    if (!error && data) setPurchases(data)
+    setLoadingData(false)
+  }
+
+  const totalSpent = purchases.reduce((sum, p) => sum + (p.qty * (p.raffles?.ticket_price || 0)), 0)
+  const activePurchases = purchases.filter(p => p.status === 'confirmed')
+  const wonPurchases = purchases.filter(p => p.status === 'won')
+  const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString(lang === 'es' ? 'es-MX' : 'en-US', { month: 'short', year: 'numeric' }) : '—'
+
+  // Mostrar loading mientras verifica auth
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontSize: 13, color: 'var(--muted)' }}>⏳ {t('Loading...', 'Cargando...')}</div>
+    </div>
+  )
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <Navbar lang={lang} setLang={setLang} />
 
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '24px 16px' }}>
-        <a href="/host" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
-          ← {lang === 'es' ? 'Panel anfitrión' : 'Host panel'}
-        </a>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, color: '#185FA5' }}>CM</div>
-          <div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>
-              {lang === 'es' ? 'Hola, Carlos 👋' : 'Hi Carlos 👋'}
+
+        {/* Header con datos reales */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, color: '#185FA5', flexShrink: 0 }}>
+              {initials}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>Member since Jan 2025 · 🍀 Lucky member</div>
+            <div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>
+                {t(`Hi, ${displayName} 👋`, `Hola, ${displayName} 👋`)}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                {t('Member since', 'Miembro desde')} {memberSince} · 🍀 {t('Lucky member', 'Lucky member')}
+              </div>
+            </div>
           </div>
+          <button onClick={signOut} style={{ fontSize: 12, color: 'var(--muted)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>
+            {t('Sign out', 'Cerrar sesión')}
+          </button>
         </div>
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1px solid var(--border)' }}>
-          {tabs.map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+          {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '8px 14px', fontSize: 13, cursor: 'pointer',
               background: 'transparent', border: 'none',
-              borderBottom: activeTab === t.id ? '2px solid var(--brand)' : '2px solid transparent',
-              color: activeTab === t.id ? 'var(--brand)' : 'var(--muted)',
-              fontWeight: activeTab === t.id ? 500 : 400,
+              borderBottom: activeTab === tab.id ? '2px solid var(--brand)' : '2px solid transparent',
+              color: activeTab === tab.id ? 'var(--brand)' : 'var(--muted)',
+              fontWeight: activeTab === tab.id ? 500 : 400,
               marginBottom: -1,
             }}>
-              <span style={{ fontSize: 14 }}>{t.icon}</span> {t.label}
+              <span style={{ fontSize: 14 }}>{tab.icon}</span> {tab.label}
             </button>
           ))}
         </div>
@@ -51,12 +95,13 @@ export default function DashboardPage({ lang, setLang }) {
         {/* OVERVIEW */}
         {activeTab === 'overview' && (
           <div>
+            {/* Stats reales */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
               {[
-                { label: lang === 'es' ? 'Boletos activos' : 'Active tickets', val: '8', sub: 'in 2 raffles' },
-                { label: lang === 'es' ? 'Estancias ganadas' : 'Stays won', val: '1', sub: '🏖 San Carlos', green: true },
-                { label: lang === 'es' ? 'Total gastado' : 'Total spent', val: '$57', sub: '4 raffles' },
-                { label: lang === 'es' ? 'Tasa de ganancia' : 'Win rate', val: '25%', sub: '↑ above avg', green: true },
+                { label: t('Active tickets', 'Boletos activos'), val: activePurchases.reduce((s, p) => s + p.qty, 0).toString(), sub: `${activePurchases.length} ${t('raffles', 'rifas')}` },
+                { label: t('Stays won', 'Estancias ganadas'), val: wonPurchases.length.toString(), sub: wonPurchases.length > 0 ? '🏆 ' + t('Winner!', '¡Ganador!') : t('Keep trying!', '¡Sigue intentando!'), green: wonPurchases.length > 0 },
+                { label: t('Total spent', 'Total gastado'), val: `$${totalSpent.toFixed(0)}`, sub: `${purchases.length} ${t('purchases', 'compras')}` },
+                { label: t('Win rate', 'Tasa de ganancia'), val: purchases.length > 0 ? `${Math.round((wonPurchases.length / purchases.length) * 100)}%` : '—', sub: t('All time', 'Histórico'), green: wonPurchases.length > 0 },
               ].map((m, i) => (
                 <div key={i} className="card" style={{ padding: '12px 14px' }}>
                   <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 5 }}>{m.label}</div>
@@ -66,202 +111,185 @@ export default function DashboardPage({ lang, setLang }) {
               ))}
             </div>
 
-            {/* Won stay banner */}
-            <div className="card" style={{ marginBottom: 16, border: '1px solid var(--brand)' }}>
-              <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ width: 72, height: 56, borderRadius: 8, background: 'linear-gradient(135deg,#b3e0f7,#81c8f0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0 }}>🌊</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 3 }}>🏆 Beach House — San Carlos, Sonora</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>2 bedrooms · Ocean view · Stay: Feb 15–17, 2025</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10, background: 'var(--brand-light)', color: 'var(--brand-dark)', padding: '2px 8px', borderRadius: 4 }}>✓ Stay completed</span>
-                    <span style={{ fontSize: 10, background: '#F4F3EF', color: 'var(--muted)', padding: '2px 8px', borderRadius: 4 }}>Winning ticket: #203</span>
-                    <span style={{ fontSize: 10, background: '#F4F3EF', color: 'var(--muted)', padding: '2px 8px', borderRadius: 4 }}>⭐ Rated 5/5</span>
-                  </div>
-                </div>
-                <button onClick={() => setActiveTab('won')} className="btn-secondary" style={{ fontSize: 12, padding: '7px 14px' }}>
-                  {lang === 'es' ? 'Ver detalles' : 'View details'}
-                </button>
+            {/* Si no hay compras todavia */}
+            {loadingData ? (
+              <div className="card" style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)', fontSize: 13 }}>
+                ⏳ {t('Loading your tickets...', 'Cargando tus boletos...')}
               </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              {/* Active draws */}
-              <div className="card">
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
-                  {lang === 'es' ? 'Sorteos activos' : 'Active draws'}
+            ) : purchases.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '40px 24px' }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🎟</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+                  {t("You haven't entered any raffles yet", 'Todavía no has participado en ninguna rifa')}
                 </div>
-                {[
-                  { emoji: '🌊', name: 'Beach House — San Carlos', loc: 'Draw Jul 8', nums: [47, 112, 203], pct: 62, amount: '$15', odds: '3 in 300' },
-                  { emoji: '🏡', name: 'Modern Home — Tucson AZ', loc: 'Draw Apr 15', nums: [19, 88, 155], pct: 78, amount: '$50', odds: '5 in 400' },
-                ].map((r, i) => (
-                  <div key={i} style={{ padding: '10px 0', borderBottom: i === 0 ? '1px solid var(--border)' : 'none' }}>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                      <div style={{ width: 40, height: 33, borderRadius: 5, background: i === 0 ? 'linear-gradient(135deg,#b3e0f7,#81c8f0)' : 'linear-gradient(135deg,#c8e6c9,#a5d6a7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{r.emoji}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)' }}>{r.name}</div>
-                        <div style={{ fontSize: 10, color: 'var(--muted)' }}>📍 {r.loc}</div>
-                        <div style={{ display: 'flex', gap: 3, marginTop: 4 }}>
-                          {r.nums.map(n => <span key={n} style={{ width: 24, height: 24, borderRadius: 4, background: '#E6F1FB', color: '#185FA5', fontSize: 10, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n}</span>)}
+                <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
+                  {t('Browse active raffles and buy your first ticket', 'Explora las rifas activas y compra tu primer boleto')}
+                </div>
+                <Link href="/raffles" className="btn-primary">
+                  {t('Browse raffles', 'Ver rifas activas')}
+                </Link>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                {/* Compras recientes */}
+                <div className="card">
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
+                    {t('Recent entries', 'Participaciones recientes')}
+                  </div>
+                  {purchases.slice(0, 3).map((p, i) => (
+                    <div key={p.id} style={{ padding: '10px 0', borderBottom: i < Math.min(purchases.length, 3) - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                        <div style={{ width: 40, height: 33, borderRadius: 5, background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🏡</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)' }}>{p.raffles?.properties?.name || p.raffle_slug}</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)' }}>📍 {p.raffles?.properties?.city || '—'}</div>
+                          <div style={{ display: 'flex', gap: 3, marginTop: 4, flexWrap: 'wrap' }}>
+                            {(p.ticket_numbers || []).slice(0, 5).map(n => (
+                              <span key={n} style={{ width: 24, height: 24, borderRadius: 4, background: '#E6F1FB', color: '#185FA5', fontSize: 10, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n}</span>
+                            ))}
+                            {(p.ticket_numbers || []).length > 5 && <span style={{ fontSize: 10, color: 'var(--muted)', alignSelf: 'center' }}>+{p.ticket_numbers.length - 5}</span>}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 12, fontWeight: 600 }}>${(p.qty * (p.raffles?.ticket_price || 0)).toFixed(0)}</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)' }}>{p.qty} {t('tickets', 'boletos')}</div>
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 12, fontWeight: 600 }}>{r.amount}</div>
-                        <div style={{ fontSize: 10, color: 'var(--muted)' }}>{r.odds}</div>
-                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Notifications */}
-              <div className="card">
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
-                  {lang === 'es' ? 'Notificaciones recientes' : 'Recent notifications'}
+                  ))}
+                  {purchases.length > 3 && (
+                    <button onClick={() => setActiveTab('tickets')} style={{ width: '100%', marginTop: 10, fontSize: 12, color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      {t('See all', 'Ver todos')} ({purchases.length}) →
+                    </button>
+                  )}
                 </div>
-                {[
-                  { dot: '#EF9F27', text: 'Draw tomorrow! Tucson closes in 18 hrs', time: '2 hrs ago' },
-                  { dot: '#378ADD', text: 'San Carlos is 62% sold — 113 remaining', time: 'Yesterday' },
-                  { dot: 'var(--brand)', text: '🎉 You won the San Carlos Feb draw!', time: 'Feb 10' },
-                ].map((n, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 8, padding: '7px 0', borderBottom: i < 2 ? '1px solid var(--border)' : 'none' }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: n.dot, flexShrink: 0, marginTop: 5 }} />
-                    <div style={{ flex: 1, fontSize: 12, color: 'var(--text)', lineHeight: 1.4 }}>{n.text}</div>
-                    <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{n.time}</div>
+
+                {/* Quick actions */}
+                <div className="card">
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
+                    {t('Quick actions', 'Acciones rápidas')}
                   </div>
-                ))}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <Link href="/raffles" className="btn-primary" style={{ justifyContent: 'center', fontSize: 13 }}>
+                      🎟 {t('Browse raffles', 'Ver rifas activas')}
+                    </Link>
+                    <button onClick={() => setActiveTab('tickets')} className="btn-secondary" style={{ fontSize: 13 }}>
+                      📋 {t('My tickets', 'Mis boletos')}
+                    </button>
+                    <button onClick={signOut} style={{ fontSize: 13, color: 'var(--muted)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', cursor: 'pointer' }}>
+                      🚪 {t('Sign out', 'Cerrar sesión')}
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
         {/* MY TICKETS */}
         {activeTab === 'tickets' && (
           <div>
-            <div className="card" style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>
-                {lang === 'es' ? 'Activos' : 'Active'}
+            {loadingData ? (
+              <div className="card" style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)', fontSize: 13 }}>
+                ⏳ {t('Loading...', 'Cargando...')}
               </div>
-              {[
-                { emoji: '🌊', grad: 'linear-gradient(135deg,#b3e0f7,#81c8f0)', name: 'Beach House — San Carlos MX', loc: 'Draw: Jul 8, 2025', nums: [47, 112, 203], badge: '7 days left', badgeBg: '#FAEEDA', badgeCol: '#633806', amount: '$15.00', odds: '3 tickets' },
-                { emoji: '🏡', grad: 'linear-gradient(135deg,#c8e6c9,#a5d6a7)', name: 'Modern Home — Tucson AZ', loc: 'Draw: Apr 15, 2025', nums: [19, 88, 155, 207, 291], badge: 'Draw in 13 days', badgeBg: '#FAEEDA', badgeCol: '#633806', amount: '$50.00', odds: '5 tickets' },
-              ].map((r, i) => (
-                <div key={i} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: i === 0 ? '1px solid var(--border)' : 'none' }}>
-                  <div style={{ width: 48, height: 40, borderRadius: 6, background: r.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{r.emoji}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{r.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>📍 {r.loc}</div>
-                    <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 5 }}>
-                      {r.nums.map(n => <span key={n} style={{ width: 26, height: 26, borderRadius: 4, background: '#E6F1FB', color: '#185FA5', fontSize: 10, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n}</span>)}
+            ) : purchases.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '40px 24px' }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🎟</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+                  {t('No tickets yet', 'Sin boletos todavía')}
+                </div>
+                <Link href="/raffles" className="btn-primary">{t('Browse raffles', 'Ver rifas')}</Link>
+              </div>
+            ) : (
+              <div className="card">
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>
+                  {t('All purchases', 'Todas las compras')} ({purchases.length})
+                </div>
+                {purchases.map((p, i) => (
+                  <div key={p.id} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: i < purchases.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <div style={{ width: 48, height: 40, borderRadius: 6, background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🏡</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500 }}>{p.raffles?.properties?.name || p.raffle_slug}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
+                        🎯 {t('Draw:', 'Sorteo:')} {p.raffles?.draw_date ? new Date(p.raffles.draw_date + 'T12:00:00').toLocaleDateString(lang === 'es' ? 'es-MX' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                      </div>
+                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                        {(p.ticket_numbers || []).map(n => (
+                          <span key={n} style={{ width: 26, height: 26, borderRadius: 4, background: p.status === 'won' ? 'var(--brand)' : '#E6F1FB', color: p.status === 'won' ? '#fff' : '#185FA5', fontSize: 10, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n}</span>
+                        ))}
+                      </div>
                     </div>
-                    <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: r.badgeBg, color: r.badgeCol }}>{r.badge}</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>${(p.qty * (p.raffles?.ticket_price || 0)).toFixed(2)} {p.raffles?.currency || 'MXN'}</div>
+                      <div style={{ fontSize: 10, color: 'var(--muted)' }}>{p.qty} {t('tickets', 'boletos')}</div>
+                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: p.status === 'won' ? 'var(--brand)' : p.status === 'confirmed' ? '#E6F1FB' : '#F4F3EF', color: p.status === 'won' ? '#fff' : p.status === 'confirmed' ? '#185FA5' : 'var(--muted)', marginTop: 4, display: 'inline-block' }}>
+                        {p.status === 'won' ? '🏆 ' + t('Won!', '¡Ganado!') : p.status === 'confirmed' ? t('Active', 'Activo') : t('Completed', 'Completado')}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{r.amount}</div>
-                    <div style={{ fontSize: 10, color: 'var(--muted)' }}>{r.odds}</div>
-                    <Link href={`/raffle/${i === 0 ? 'beach-house-san-carlos' : 'modern-home-tucson'}`} style={{ fontSize: 10, color: 'var(--brand)', textDecoration: 'none', display: 'block', marginTop: 4 }}>+ Add tickets</Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="card">
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>
-                {lang === 'es' ? 'Historial' : 'Past entries'}
+                ))}
               </div>
-              <div style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ width: 48, height: 40, borderRadius: 6, background: 'linear-gradient(135deg,#b3e0f7,#81c8f0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🌊</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>Beach House — San Carlos MX</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Draw: Feb 10, 2025</div>
-                  <div style={{ display: 'flex', gap: 3 }}>
-                    <span style={{ width: 26, height: 26, borderRadius: 4, background: 'var(--brand)', color: '#fff', fontSize: 10, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>203</span>
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 12, fontWeight: 600 }}>$10.00</div>
-                  <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'var(--brand)', color: '#fff' }}>🏆 Won!</span>
-                  <div style={{ fontSize: 10, color: 'var(--brand)', marginTop: 3 }}>$1,200 stay</div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
         {/* WON STAYS */}
         {activeTab === 'won' && (
           <div>
-            <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
-              <div style={{ height: 120, background: 'linear-gradient(135deg,#b3e0f7,#81c8f0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48, position: 'relative' }}>
-                🌊
-                <div style={{ position: 'absolute', top: 10, left: 10, background: 'var(--brand)', color: '#fff', fontSize: 10, fontWeight: 500, padding: '3px 10px', borderRadius: 10 }}>🏆 Won</div>
-              </div>
-              <div style={{ padding: 20 }}>
-                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Beach House — San Carlos, Sonora MX</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>2 bedrooms · Ocean view · Full kitchen · A/C</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                  {[
-                    ['🎯 Won', 'Feb 10, 2025'],
-                    ['🗓 Stay', 'Feb 15–17, 2025'],
-                    ['🎟 Ticket', '#203'],
-                    ['💰 Value', '$1,200 USD'],
-                  ].map(([k, v]) => (
-                    <div key={k} style={{ fontSize: 11, background: '#F4F3EF', padding: '4px 10px', borderRadius: 6, color: 'var(--muted)' }}>
-                      <strong style={{ color: 'var(--text)' }}>{k}:</strong> {v}
-                    </div>
-                  ))}
+            {wonPurchases.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '40px 24px' }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🍀</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+                  {t('No wins yet — keep trying!', 'Todavía sin ganancias — ¡sigue intentando!')}
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button className="btn-primary" style={{ fontSize: 12 }}>View details</button>
-                  <button className="btn-secondary" style={{ fontSize: 12 }}>📤 Share win</button>
-                  <Link href="/" className="btn-secondary" style={{ fontSize: 12 }}>🔁 Raffle again</Link>
+                <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
+                  {t('Every ticket is a chance. The more you play, the better your odds.', 'Cada boleto es una oportunidad. Cuanto más juegas, mayores son tus chances.')}
+                </div>
+                <Link href="/raffles" className="btn-primary">{t('Browse raffles', 'Ver rifas')}</Link>
+              </div>
+            ) : wonPurchases.map(p => (
+              <div key={p.id} className="card" style={{ overflow: 'hidden', padding: 0, marginBottom: 16 }}>
+                <div style={{ height: 100, background: 'linear-gradient(135deg,#1A6B3C,#2E8B57)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48, position: 'relative' }}>
+                  🏆
+                  <div style={{ position: 'absolute', top: 10, left: 10, background: 'var(--brand)', color: '#fff', fontSize: 10, fontWeight: 500, padding: '3px 10px', borderRadius: 10 }}>🏆 {t('Won', 'Ganado')}</div>
+                </div>
+                <div style={{ padding: 20 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{p.raffles?.properties?.name || p.raffle_slug}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>📍 {p.raffles?.properties?.city}, {p.raffles?.properties?.country}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+                    {[
+                      ['🎟 ' + t('Tickets', 'Boletos'), (p.ticket_numbers || []).join(', ')],
+                      ['💰 ' + t('Paid', 'Pagado'), `$${(p.qty * (p.raffles?.ticket_price || 0)).toFixed(0)} ${p.raffles?.currency || 'MXN'}`],
+                    ].map(([k, v]) => (
+                      <div key={k} style={{ fontSize: 11, background: '#F4F3EF', padding: '4px 10px', borderRadius: 6, color: 'var(--muted)' }}>
+                        <strong style={{ color: 'var(--text)' }}>{k}:</strong> {v}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button className="btn-secondary" style={{ fontSize: 12 }}>📤 {t('Share win', 'Compartir')}</button>
+                    <Link href="/raffles" className="btn-secondary" style={{ fontSize: 12 }}>🔁 {t('Raffle again', 'Participar de nuevo')}</Link>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="card" style={{ marginTop: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>📸</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
-                {lang === 'es' ? 'Comparte tu experiencia' : 'Share your experience'}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14, maxWidth: 340, margin: '0 auto 14px' }}>
-                {lang === 'es' ? 'Comparte tu historia y consigue $5 de descuento en tu próxima rifa.' : 'Share your story and get $5 off your next raffle entry.'}
-              </div>
-              <button className="btn-primary">
-                {lang === 'es' ? 'Compartir mi historia' : 'Share my story'}
-              </button>
-            </div>
+            ))}
           </div>
         )}
 
         {/* NOTIFICATIONS */}
         {activeTab === 'notifications' && (
-          <div className="card">
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 10, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5 }}>NEW</div>
-            {[
-              { dot: '#EF9F27', text: '⚡ Draw tomorrow! Tucson closes in 18 hours. Fingers crossed!', time: '2 hours ago', unread: true },
-              { dot: '#378ADD', text: 'San Carlos is now 62% sold — 113 tickets still available. Buy more to increase your odds.', time: 'Yesterday', unread: true },
-              { dot: 'var(--brand)', text: '🎉 You won! Ticket #203 won the San Carlos Feb draw. Check email for check-in details.', time: 'Feb 10', unread: true },
-            ].map((n, i) => (
-              <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)', background: n.unread ? '#F0F7FF' : 'transparent', margin: '0 -20px', padding: '10px 20px' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.dot, flexShrink: 0, marginTop: 5 }} />
-                <div style={{ flex: 1, fontSize: 12, color: 'var(--text)', lineHeight: 1.5 }}>{n.text}</div>
-                <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{n.time}</div>
-              </div>
-            ))}
-            <div style={{ fontSize: 11, color: 'var(--muted)', margin: '14px 0 8px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5 }}>EARLIER</div>
-            {[
-              { text: 'Your payment of $15.00 for San Carlos was confirmed.', time: 'Apr 1' },
-              { text: 'Copper Canyon draw completed. Better luck next round!', time: 'Jan 5' },
-            ].map((n, i) => (
-              <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: i === 0 ? '1px solid var(--border)' : 'none' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--subtle)', flexShrink: 0, marginTop: 5 }} />
-                <div style={{ flex: 1, fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{n.text}</div>
-                <div style={{ fontSize: 10, color: 'var(--muted)' }}>{n.time}</div>
-              </div>
-            ))}
+          <div className="card" style={{ textAlign: 'center', padding: '40px 24px' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+              {t('Notifications coming soon', 'Notificaciones próximamente')}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+              {t("We'll notify you when your draw is near or if you win.", 'Te notificaremos cuando tu sorteo esté cerca o si ganas.')}
+            </div>
           </div>
         )}
+
       </div>
     </div>
   )
