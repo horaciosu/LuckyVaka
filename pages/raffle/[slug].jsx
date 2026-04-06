@@ -177,7 +177,19 @@ export default function RafflePage({ lang, setLang }) {
                 <div style={{display:'flex',justifyContent:'space-between',fontSize:14,fontWeight:700,color:'var(--text)',borderTop:'1px solid var(--border)',paddingTop:8}}><span>Total</span><span>{total} {raffle.currency}</span></div>
               </div>
               <button onClick={pickRandom} style={{width:'100%',background:'transparent',border:'1px solid var(--border)',borderRadius:10,padding:'9px',fontSize:12,cursor:'pointer',color:'var(--muted)',marginBottom:10}}>🍀 {t('Pick for me','Elige por mí')}</button>
-              <Link href={`/checkout?raffle=${raffle.slug}&qty=${qty}&tickets=${[...selected].join(',')}`} className="btn-primary" style={{width:'100%',justifyContent:'center',marginBottom:10,fontSize:14,fontWeight:600,borderRadius:10,padding:'12px'}}>
+              <button
+                onClick={() => {
+                  if (!user) {
+                    window.location.href = '/login?next=' + encodeURIComponent('/checkout?raffle=' + raffle.slug + '&qty=' + qty + '&tickets=' + [...selected].join(','))
+                  } else {
+                    window.location.href = '/checkout?raffle=' + raffle.slug + '&qty=' + qty + '&tickets=' + [...selected].join(',')
+                  }
+                }}
+                className="btn-primary"
+                style={{width:'100%',justifyContent:'center',marginBottom:8,fontSize:14,fontWeight:600,borderRadius:10,padding:'12px'}}
+              >
+                {lang==='es' ? \`Comprar — \${total} \${raffle.currency}\` : \`Buy tickets — \${total} \${raffle.currency}\`}
+              </button>
                 🔒 {lang==='es'?`Comprar — ${total} ${raffle.currency}`:`Buy — ${total} ${raffle.currency}`}
               </Link>
               <div style={{fontSize:10,color:'var(--muted)',textAlign:'center',lineHeight:1.6}}>✓ {t('Guaranteed winner · Full refund if not funded','Ganador garantizado · Reembolso si no se activa')}</div>
