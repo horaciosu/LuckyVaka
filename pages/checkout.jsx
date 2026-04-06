@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../lib/useAuth'
 
 export default function Checkout({ lang, setLang }) {
   const router = useRouter()
@@ -21,6 +22,7 @@ export default function Checkout({ lang, setLang }) {
   const [errors, setErrors] = useState({})
   const [terms, setTerms] = useState(false)
 
+  const { user } = useAuth({ required: true, redirectTo: '/login' })
   const t = (en, es) => lang === 'es' ? es : en
 
   useEffect(() => {
