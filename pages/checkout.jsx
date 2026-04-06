@@ -84,19 +84,20 @@ export default function Checkout({ lang, setLang }) {
       }
 
       // Enviar email de confirmación
-      await fetch('/api/emails/purchase-confirmation', {
+      await fetch('/api/emails/confirm-purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: form.email,
-          name: form.fname,
-          raffle_title: raffle.properties?.name || raffleSlug,
-          ticket_numbers: selectedTickets,
-          draw_date: raffle.draw_date,
-          total,
+          clientEmail: form.email,
+          clientName: form.fname,
+          propertyName: raffle.properties?.name || raffleSlug,
+          propertyLocation: `${raffle.properties?.city || ''}, ${raffle.properties?.country || ''}`,
+          ticketNumbers: selectedTickets,
+          totalPaid: total,
           currency: raffle.currency,
-        }),
-      }).catch(() => {}) // No fallar si el email falla
+          raffleDate: raffle.draw_date,
+          stayDate: raffle.stay_date,
+          raffleId: raffle.id,
 
       setStep('success')
     } catch (err) {
