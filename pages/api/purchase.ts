@@ -9,7 +9,7 @@ const supabase = createClient(
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { raffle_slug, ticket_numbers, buyer_email, buyer_name, qty } = req.body
+  const { raffle_slug, ticket_numbers, buyer_email, buyer_name, qty, buyer_id, total_paid } = req.body
 
   if (!raffle_slug || !ticket_numbers?.length || !buyer_email) {
     return res.status(400).json({ error: 'Missing required fields' })
@@ -67,10 +67,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .insert({
       raffle_id: raffle.id,
       raffle_slug,
+      buyer_id: buyer_id || null,
       buyer_email,
       buyer_name: buyer_name || '',
       ticket_numbers,
       qty: ticket_numbers.length,
+      total_paid: total_paid || null,
+      currency: raffle.currency || 'MXN',
       status: 'confirmed',
     })
     .select()

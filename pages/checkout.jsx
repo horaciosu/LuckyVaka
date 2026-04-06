@@ -67,6 +67,8 @@ export default function Checkout({ lang, setLang }) {
           buyer_email: form.email,
           buyer_name: `${form.fname} ${form.lname}`.trim(),
           qty: ticketCount,
+          buyer_id: user?.id || null,
+          total_paid: total,
         }),
       })
 
