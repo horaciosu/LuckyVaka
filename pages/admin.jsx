@@ -53,6 +53,12 @@ const DocModal = ({ property, onClose }) => {
 
   const handleDoc = (url) => {
     if (!url) return
+    // Si es URL publica de supabase storage, extraer el path y firmar
+    if (url.includes('/object/public/host-documents/')) {
+      const path = url.split('/object/public/host-documents/')[1]
+      getSignedUrl(path)
+      return
+    }
     if (url.startsWith('http')) { window.open(url, '_blank'); return }
     getSignedUrl(url)
   }
