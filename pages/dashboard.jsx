@@ -6,7 +6,7 @@ import { useAuth } from '../lib/useAuth'
 import { supabase } from '../lib/supabase'
 
 export default function DashboardPage({ lang, setLang }) {
-  const { user, loading, signOut, displayName, initials, avatarUrl } = useAuth({ required: true })
+  const { user, loading, signOut, displayName, initials, avatarUrl, isHost } = useAuth({ required: true })
   const [activeTab, setActiveTab] = useState('overview')
   const router = useRouter()
   useEffect(() => { if (router.query.tab) setActiveTab(router.query.tab) }, [router.query.tab])
@@ -73,7 +73,7 @@ export default function DashboardPage({ lang, setLang }) {
               </div>
             </div>
           </div>
-          <button onClick={signOut} style={{ fontSize: 12, color: 'var(--muted)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>
+          {isHost && (<button onClick={() => router.push('/host')} style={{ fontSize: 12, color: 'var(--primary)', background: 'none', border: '1px solid var(--primary)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', marginRight: 8 }}>🏠 {lang === 'es' ? 'Panel anfitrión' : 'Host panel'}</button>)}<button onClick={signOut} style={{ fontSize: 12, color: 'var(--muted)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>
             {t('Sign out', 'Cerrar sesión')}
           </button>
         </div>
