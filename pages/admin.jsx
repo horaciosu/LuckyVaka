@@ -224,6 +224,11 @@ export default function Admin({ lang, setLang }) {
 
   useEffect(() => { checkAdmin() }, [])
 
+  const signOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
   const checkAdmin = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
@@ -447,6 +452,9 @@ export default function Admin({ lang, setLang }) {
           )}
           <button onClick={fetchAll} style={{ background: '#F3F4F6', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#374151' }}>
             ↻ Actualizar
+          </button>
+          <button onClick={signOut} style={{ background: '#FEE2E2', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#991B1B' }}>
+            🚪 Cerrar sesión
           </button>
           <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#6366F1', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#fff', fontWeight: 700 }}>
             {avatarUrl ? <img src={avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : adminUser?.email?.[0]?.toUpperCase()}
