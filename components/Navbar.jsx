@@ -152,15 +152,14 @@ export default function Navbar({ lang, setLang }) {
                   </Link>
                 )}
 
-                {[
-                  role === 'host'
-                    ? { href: '/host', label: lang === 'es' ? 'Panel anfitrión' : 'Host panel', icon: '🏡' }
-                    : { href: '/dashboard', label: lang === 'es' ? 'Mis boletos' : 'My tickets', icon: '🎟' },
-                  role === 'host'
-                    ? { href: '/my-properties', label: lang === 'es' ? 'Mis propiedades' : 'My properties', icon: '🏠' }
-                    : { href: '/dashboard', label: lang === 'es' ? 'Mi cuenta' : 'My account', icon: '👤' },
-                  { href: '/profile', label: lang === 'es' ? 'Editar perfil' : 'Edit profile', icon: '✏️' },
-                ].map(item => (
+            {[
+              { href: '/host', label: lang === 'es' ? 'Panel anfitrión' : 'Host panel', icon: '🏠' },
+              { href: '/dashboard', label: lang === 'es' ? 'Mis boletos' : 'My tickets', icon: '🎟️' },
+              role === 'host'
+                ? { href: '/my-properties', label: lang === 'es' ? 'Mis propiedades' : 'My properties', icon: '🏡' }
+                : { href: '/dashboard', label: lang === 'es' ? 'Mi cuenta' : 'My account', icon: '👤' },
+              { href: '/profile', label: lang === 'es' ? 'Editar perfil' : 'Edit profile', icon: '✏️' },
+            ].map(item => (
                   <Link key={item.href + item.label} href={item.href} onClick={() => setMenuOpen(false)} style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '9px 14px', fontSize: 13, color: 'var(--text)',
