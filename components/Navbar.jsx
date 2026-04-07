@@ -8,6 +8,7 @@ export default function Navbar({ lang, setLang }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [hostStatus, setHostStatus] = useState(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -31,6 +32,12 @@ export default function Navbar({ lang, setLang }) {
       .eq('id', userId)
       .single()
     if (data) setProfile(data)
+  const { data: app } = await supabase
+    .from('host_applications')
+    .select('status')
+    .eq('user_id', userId)
+    .single()
+  setHostStatus(app?.status || null)
   }
 
   const handleLogout = async () => {
