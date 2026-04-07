@@ -6,7 +6,7 @@ import { useAuth } from '../lib/useAuth'
 import { supabase } from '../lib/supabase'
 
 export default function DashboardPage({ lang, setLang }) {
-  const { user, loading, signOut, displayName, initials } = useAuth({ required: true })
+  const { user, loading, signOut, displayName, initials, avatarUrl } = useAuth({ required: true })
   const [activeTab, setActiveTab] = useState('overview')
   const router = useRouter()
   useEffect(() => { if (router.query.tab) setActiveTab(router.query.tab) }, [router.query.tab])
@@ -62,7 +62,7 @@ export default function DashboardPage({ lang, setLang }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, color: '#185FA5', flexShrink: 0 }}>
-              {initials}
+              {avatarUrl ? <img src={avatarUrl} alt={displayName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : initials}
             </div>
             <div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>
