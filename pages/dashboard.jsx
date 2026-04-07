@@ -16,7 +16,7 @@ export default function DashboardPage({ lang, setLang }) {
   const t = (en, es) => lang === 'es' ? es : en
 
   const tabs = [
-    { id: 'overview', icon: '🏠', label: t('Overview', 'Overview') },
+    { id: 'overview', icon: '🏠', label: t('Overview', 'Resumen') },
     { id: 'tickets', icon: '🎟', label: t('My tickets', 'Mis boletos') },
     { id: 'won', icon: '🏆', label: t('Won stays', 'Ganadas') },
     { id: 'notifications', icon: '🔔', label: t('Notifications', 'Notificaciones') },
