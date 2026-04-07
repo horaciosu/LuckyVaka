@@ -13,6 +13,7 @@ export default function AdminPage({ lang, setLang }) {
   const [properties, setProperties] = useState([])
   const [raffles, setRaffles] = useState([])
   const [users, setUsers] = useState([])
+  const [hostApplications, setHostApplications] = useState([])
   const [stats, setStats] = useState({ properties: 0, raffles: 0, active: 0, drafts: 0 })
 
   useEffect(() => {
@@ -29,12 +30,15 @@ export default function AdminPage({ lang, setLang }) {
   }, [])
 
   const loadData = async () => {
-    const [propsRes, rafflesRes] = await Promise.all([
+    const [propsRes, rafflesRes, appsRes] = await Promise.all([
       supabase.from('properties').select('*').order('created_at', { ascending: false }),
       supabase.from('raffles').select('*, properties(name, city)').order('created_at', { ascending: false }),
+      supabase.from('host_applications').select('*').order('created_at', { ascending: false }),
     ])
     const props = propsRes.data || []
     const rafs = rafflesRes.data || []
+  const apps = appsRes.data || []
+  setHostApplications(apps)
     setProperties(props)
     setRaffles(rafs)
     setStats({
@@ -43,6 +47,15 @@ export default function AdminPage({ lang, setLang }) {
       active: rafs.filter(r => r.status === 'active').length,
       drafts: rafs.filter(r => r.status === 'draft').length,
     })
+  }
+
+  const approveHost = async (userId, action) => {
+    await fetch('/api/approve-host', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, action })
+    })
+    loadData()
   }
 
   const updatePropertyStatus = async (id, status) => {
