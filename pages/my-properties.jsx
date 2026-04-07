@@ -38,8 +38,6 @@ const empty = {
   checkin_time: '15:00', checkout_time: '11:00',
   images: [],
   status: 'pending',
-  deed_doc_url: '',
-  address_doc_url: '',
 }
 
 export default function MyProperties({ lang, setLang }) {
@@ -53,22 +51,6 @@ export default function MyProperties({ lang, setLang }) {
   const [editing, setEditing] = useState(null) // property id being edited
   const [form, setForm] = useState(empty)
   const [errors, setErrors] = useState({})
-  const [docUploading, setDocUploading] = useState({})
-  const [docErrors, setDocErrors] = useState({})
-
-  const uploadPropertyDoc = async (file, docKey) => {
-    if (!file) return
-    setDocUploading(p => ({ ...p, [docKey]: true }))
-    const fileName = 'property-docs/' + (user?.id || 'unknown') + '/' + docKey + '-' + Date.now() + '-' + file.name
-    const { error } = await supabase.storage.from('host-documents').upload(fileName, file, { upsert: true })
-    if (error) {
-      setDocErrors(p => ({ ...p, [docKey]: true }))
-    } else {
-      const { data } = supabase.storage.from('host-documents').getPublicUrl(fileName)
-      update(docKey + '_url', data.publicUrl)
-    }
-    setDocUploading(p => ({ ...p, [docKey]: false }))
-  }
 
   const t = (en, es) => lang === 'es' ? es : en
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -122,8 +104,6 @@ export default function MyProperties({ lang, setLang }) {
       ...form,
       host_id: freshUserId,
       status: 'pending',
-  deed_doc_url: '',
-  address_doc_url: '',
     }
 
     let error
@@ -198,7 +178,6 @@ export default function MyProperties({ lang, setLang }) {
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <Navbar lang={lang} setLang={setLang} />
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '32px 20px' }}>
-        <a href="/host" style={{ fontSize: 13, color: "var(--muted)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16 }}>← {lang === "es" ? "Panel anfitrión" : "Host panel"}</a>
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -443,36 +422,7 @@ export default function MyProperties({ lang, setLang }) {
               )}
             </div>
 
-            {/* SECTION 6 - Property Documents */}
-              <div className="card" style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
-                  📄 {t('Property documents', 'Documentos de la propiedad')}
-                </div>
-                {[
-                  { key: 'deed_doc', label_es: 'Escrituras o título de propiedad', label_en: 'Property deed or title', required: true },
-                  { key: 'address_doc', label_es: 'Comprobante de domicilio de la propiedad', label_en: 'Property proof of address', required: true },
-                ].map(doc => (
-                  <div key={doc.key} style={{ marginBottom: 16, padding: 12, border: `1px solid ${docErrors[doc.key] ? '#F7C1C1' : 'var(--border)'}`, borderRadius: 8 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>
-                      {t(doc.label_en, doc.label_es)} {doc.required && <span style={{ color: '#E53935', fontSize: 11 }}>Requerido</span>}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>JPG, PNG o PDF. Máx 10MB.</div>
-                    {form[`${doc.key}_url`] ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 12, color: '#0F6E56' }}>✅ {t('Uploaded', 'Subido')}</span>
-                        <button onClick={() => update(`${doc.key}_url`, '')} style={{ fontSize: 11, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>✕ {t('Remove', 'Quitar')}</button>
-                      </div>
-                    ) : (
-                      <label style={{ display: 'inline-block', padding: '6px 14px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12, cursor: 'pointer', background: 'var(--surface)' }}>
-                        {docUploading[doc.key] ? '⏳ ' + t('Uploading...', 'Subiendo...') : '📎 ' + t('Choose file', 'Elegir archivo')}
-                        <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => uploadPropertyDoc(e.target.files[0], doc.key)} />
-                      </label>
-                    )}
-                    {docErrors[doc.key] && <div style={{ fontSize: 11, color: '#E53935', marginTop: 4 }}>⚠️ {t('Upload error. Try again.', 'Error al subir. Intenta de nuevo.')}</div>}
-                  </div>
-                ))}
-              </div>
-              {/* Save message */}
+            {/* Save message */}
             {saveMsg && (
               <div style={{
                 padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 14,
