@@ -230,3 +230,4 @@ export default function ProfilePage({ lang, setLang }) {
     </div>
   )
 }
+// lunes,  6 de abril de 2026, 17:41:07 MST
