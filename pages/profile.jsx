@@ -124,10 +124,10 @@ export default function ProfilePage({ lang, setLang }) {
 
             {/* Acciones */}
             <div>
-              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoSelect} />
-              <button onClick={() => fileRef.current?.click()} disabled={uploadingPhoto} className="btn-secondary" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
+              <input id="avatarFileInput" type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoSelect} />
+              <label htmlFor="avatarFileInput" style={{ display: 'inline-block', padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 13, cursor: 'pointer', marginBottom: 8, userSelect: 'none' }}>
                 📷 {uploadingPhoto ? t('Uploading...', 'Subiendo...') : t('Change photo', 'Cambiar foto')}
-              </button>
+              </label>
               {avatarPreview && (
                 <button onClick={async () => {
                   await updateProfile({ avatar_url: null })
