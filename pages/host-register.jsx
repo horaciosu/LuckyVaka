@@ -48,6 +48,16 @@ const DOCS_CONFIG = [
     hint_en: 'JPG, PNG or PDF. Max 10MB.',
   },
   {
+    key: 'address_doc',
+    icon: '🏠',
+    label_en: 'Proof of address (utility bill or bank statement)',
+    label_es: 'Comprobante de domicilio (a nombre del propietario o de la propiedad)',
+    required: true,
+    accept: 'image/*,.pdf',
+    hint_es: 'Recibo de luz, agua, teléfono o estado de cuenta. Máx 3 meses de antigüedad.',
+    hint_en: 'Utility bill or bank statement. Max 3 months old.',
+  },
+  {
     key: 'tax_doc',
     icon: '📋',
     label_en: 'Tax registration / Constancia de situación fiscal (RFC)',
