@@ -53,6 +53,22 @@ export default function MyProperties({ lang, setLang }) {
   const [editing, setEditing] = useState(null) // property id being edited
   const [form, setForm] = useState(empty)
   const [errors, setErrors] = useState({})
+  const [docUploading, setDocUploading] = useState({})
+  const [docErrors, setDocErrors] = useState({})
+
+  const uploadPropertyDoc = async (file, docKey) => {
+    if (!file) return
+    setDocUploading(p => ({ ...p, [docKey]: true }))
+    const fileName = 'property-docs/' + (user?.id || 'unknown') + '/' + docKey + '-' + Date.now() + '-' + file.name
+    const { error } = await supabase.storage.from('host-documents').upload(fileName, file, { upsert: true })
+    if (error) {
+      setDocErrors(p => ({ ...p, [docKey]: true }))
+    } else {
+      const { data } = supabase.storage.from('host-documents').getPublicUrl(fileName)
+      update(docKey + '_url', data.publicUrl)
+    }
+    setDocUploading(p => ({ ...p, [docKey]: false }))
+  }
 
   const t = (en, es) => lang === 'es' ? es : en
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }))
