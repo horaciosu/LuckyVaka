@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 import Link from 'next/link'
 
 export default function ProfilePage({ lang, setLang }) {
-  const { user, loading: authLoading, signOut, isHost } = useAuth({ required: true })
+  const { user, loading: authLoading, signOut, isHost } = useAuth({ required: false })
   const { profile, loading: profileLoading, updateProfile, uploadAvatar } = useProfile(user?.id)
 
   const [form, setForm] = useState({ full_name: '', phone: '' })
