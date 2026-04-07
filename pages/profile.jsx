@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 import Link from 'next/link'
 
 export default function ProfilePage({ lang, setLang }) {
-  const { user, loading: authLoading, signOut, isHost } = useAuth({ required: false })
+  const { user, loading: authLoading, signOut, isHost } = useAuth({ required: true })
   const { profile, loading: profileLoading, updateProfile, uploadAvatar } = useProfile(user?.id)
 
   const [form, setForm] = useState({ full_name: '', phone: '' })
@@ -124,8 +124,8 @@ export default function ProfilePage({ lang, setLang }) {
 
             {/* Acciones */}
             <div>
-              <input id="fileInput" type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoSelect} />
-              <button onClick={() => document.getElementById("fileInput").click()} disabled={uploadingPhoto} className="btn-secondary" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoSelect} />
+              <button onClick={() => fileRef.current?.click()} disabled={uploadingPhoto} className="btn-secondary" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
                 📷 {uploadingPhoto ? t('Uploading...', 'Subiendo...') : t('Change photo', 'Cambiar foto')}
               </button>
               {avatarPreview && (
@@ -230,4 +230,3 @@ export default function ProfilePage({ lang, setLang }) {
     </div>
   )
 }
-// lunes,  6 de abril de 2026, 17:41:07 MST
