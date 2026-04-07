@@ -124,8 +124,8 @@ export default function ProfilePage({ lang, setLang }) {
 
             {/* Acciones */}
             <div>
-              <input id="fileInput" type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoSelect} />
-              <button onClick={() => document.getElementById("fileInput").click()} disabled={uploadingPhoto} className="btn-secondary" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoSelect} />
+              <button onClick={() => fileRef.current?.click()} disabled={uploadingPhoto} className="btn-secondary" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
                 📷 {uploadingPhoto ? t('Uploading...', 'Subiendo...') : t('Change photo', 'Cambiar foto')}
               </button>
               {avatarPreview && (
