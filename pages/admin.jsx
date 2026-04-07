@@ -224,7 +224,10 @@ export default function Admin({ lang, setLang }) {
 
     // Fetch users via service role API
     try {
-      const res = await fetch('/api/admin-users')
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin-users', {
+        headers: { Authorization: 'Bearer ' + session?.access_token }
+      })
       if (res.ok) {
         const data = await res.json()
         const allUsers = data.users || []
