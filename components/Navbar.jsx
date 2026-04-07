@@ -32,12 +32,12 @@ export default function Navbar({ lang, setLang }) {
       .eq('id', userId)
       .single()
     if (data) setProfile(data)
-  const { data: app } = await supabase
-    .from('host_applications')
-    .select('status')
-    .eq('user_id', userId)
-    .single()
-  setHostStatus(app?.status || null)
+    const { data: app } = await supabase
+      .from('host_applications')
+      .select('status')
+      .eq('user_id', userId)
+      .single()
+    setHostStatus(app?.status || null)
   }
 
   const handleLogout = async () => {
@@ -55,12 +55,42 @@ export default function Navbar({ lang, setLang }) {
   const isAdmin = user?.email === ADMIN_EMAIL
   const role = user?.user_metadata?.role
 
+  // Menú items según rol
+  const getMenuItems = () => {
+    // Admin: solo admin panel + editar perfil
+    if (isAdmin) return [
+      { href: '/admin', label: 'Panel admin', icon: '⭐' },
+      { href: '/profile', label: lang === 'es' ? 'Editar perfil' : 'Edit profile', icon: '✏️' },
+    ]
+    // Host: panel anfitrión + mis propiedades + editar perfil
+    if (role === 'host') return [
+      { href: '/host', label: lang === 'es' ? 'Panel anfitrión' : 'Host panel', icon: '🏠' },
+      { href: '/my-properties', label: lang === 'es' ? 'Mis propiedades' : 'My properties', icon: '🏡' },
+      { href: '/dashboard?tab=tickets', label: lang === 'es' ? 'Mis boletos' : 'My tickets', icon: '🎟️' },
+      { href: '/profile', label: lang === 'es' ? 'Editar perfil' : 'Edit profile', icon: '✏️' },
+    ]
+    // Guest normal: dashboard + editar perfil
+    return [
+      { href: '/dashboard?tab=tickets', label: lang === 'es' ? 'Mis boletos' : 'My tickets', icon: '🎟️' },
+      { href: '/dashboard', label: lang === 'es' ? 'Mi cuenta' : 'My account', icon: '👤' },
+      { href: '/profile', label: lang === 'es' ? 'Editar perfil' : 'Edit profile', icon: '✏️' },
+    ]
+  }
+
+  // Label del rol en el header del menú
+  const getRoleLabel = () => {
+    if (isAdmin) return lang === 'es' ? 'Administrador' : 'Administrator'
+    if (role === 'host') return lang === 'es' ? 'Anfitrión' : 'Host'
+    return lang === 'es' ? 'Viajero' : 'Traveler'
+  }
+
   return (
     <nav style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '14px 24px', borderBottom: '1px solid var(--border)',
       background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 100,
     }}>
+      {/* Logo */}
       <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{ width: 28, height: 28, background: 'var(--brand)', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg viewBox="0 0 14 14" fill="none" width="14" height="14">
@@ -73,11 +103,25 @@ export default function Navbar({ lang, setLang }) {
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <Link href="/raffles" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
-          {lang === 'en' ? 'Explore' : 'Explorar'}
-        </Link>
-      {user && <Link href={role === 'host' ? '/host' : hostStatus === 'pending' ? '/host-pending' : '/host-register'} style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>{lang === 'en' ? 'List property' : 'Anfitrión'}</Link>}
 
+        {/* Explorar — visible para todos menos admin */}
+        {!isAdmin && (
+          <Link href="/raffles" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
+            {lang === 'en' ? 'Explore' : 'Explorar'}
+          </Link>
+        )}
+
+        {/* Link Anfitrión — solo para no-admin */}
+        {user && !isAdmin && (
+          <Link
+            href={role === 'host' ? '/host' : hostStatus === 'pending' ? '/host-pending' : '/host-register'}
+            style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}
+          >
+            {lang === 'en' ? 'List property' : 'Anfitrión'}
+          </Link>
+        )}
+
+        {/* Selector de idioma */}
         <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
           {['en', 'es'].map(l => (
             <button key={l} onClick={() => setLang && setLang(l)} style={{
@@ -92,9 +136,10 @@ export default function Navbar({ lang, setLang }) {
 
         {user ? (
           <div style={{ position: 'relative' }}>
+            {/* Avatar button */}
             <button onClick={() => setMenuOpen(m => !m)} style={{
               width: 36, height: 36, borderRadius: '50%',
-              border: '2px solid var(--brand)',
+              border: `2px solid ${isAdmin ? '#F59E0B' : 'var(--brand)'}`,
               cursor: 'pointer', overflow: 'hidden',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: avatarUrl ? 'transparent' : 'var(--brand-light)',
@@ -118,16 +163,18 @@ export default function Navbar({ lang, setLang }) {
               </span>
             </button>
 
+            {/* Dropdown menú */}
             {menuOpen && (
               <div style={{
                 position: 'absolute', right: 0, top: 44, width: 200,
                 background: 'var(--surface)', border: '1px solid var(--border)',
                 borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
                 overflow: 'hidden', zIndex: 200,
-              }}>
-                {/* Header del menú con avatar */}
+              }} onClick={() => setMenuOpen(false)}>
+
+                {/* Header con avatar y rol */}
                 <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: '2px solid var(--brand)', background: 'var(--brand-light)' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: `2px solid ${isAdmin ? '#F59E0B' : 'var(--brand)'}`, background: 'var(--brand-light)' }}>
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
@@ -140,32 +187,15 @@ export default function Navbar({ lang, setLang }) {
                     <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {displayName}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 1 }}>
-                      {role === 'host' ? (lang === 'es' ? 'Anfitrión' : 'Host') : (lang === 'es' ? 'Viajero' : 'Traveler')}
+                    <div style={{ fontSize: 10, color: isAdmin ? '#F59E0B' : 'var(--muted)', marginTop: 1, fontWeight: isAdmin ? 700 : 400 }}>
+                      {getRoleLabel()}
                     </div>
                   </div>
                 </div>
 
-                {isAdmin && (
-                  <Link href="/admin" onClick={() => setMenuOpen(false)} style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '9px 14px', fontSize: 13, color: '#A32D2D',
-                    textDecoration: 'none', borderBottom: '1px solid var(--border)',
-                    background: '#FCEBEB',
-                  }}>
-                    <span>🔐</span> Admin panel
-                  </Link>
-                )}
-
-            {[
-              { href: '/host', label: lang === 'es' ? 'Panel anfitrión' : 'Host panel', icon: '🏠' },
-              { href: '/dashboard?tab=tickets', label: lang === 'es' ? 'Mis boletos' : 'My tickets', icon: '🎟️' },
-              role === 'host'
-                ? { href: '/my-properties', label: lang === 'es' ? 'Mis propiedades' : 'My properties', icon: '🏡' }
-                : { href: '/dashboard', label: lang === 'es' ? 'Mi cuenta' : 'My account', icon: '👤' },
-              { href: '/profile', label: lang === 'es' ? 'Editar perfil' : 'Edit profile', icon: '✏️' },
-            ].map(item => (
-                  <Link key={item.href + item.label} href={item.href} onClick={() => setMenuOpen(false)} style={{
+                {/* Items del menú según rol */}
+                {getMenuItems().map(item => (
+                  <Link key={item.href + item.label} href={item.href} style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '9px 14px', fontSize: 13, color: 'var(--text)',
                     textDecoration: 'none', borderBottom: '1px solid var(--border)',
@@ -174,6 +204,7 @@ export default function Navbar({ lang, setLang }) {
                   </Link>
                 ))}
 
+                {/* Cerrar sesión — siempre al final */}
                 <button onClick={handleLogout} style={{
                   width: '100%', padding: '9px 14px', fontSize: 13,
                   color: '#E24B4A', background: 'none', border: 'none',
@@ -190,7 +221,7 @@ export default function Navbar({ lang, setLang }) {
               {lang === 'en' ? 'Log in' : 'Entrar'}
             </Link>
             <Link href="/signup" className="btn-primary" style={{ padding: '7px 14px', fontSize: 13 }}>
-              {lang === 'en' ? 'Sign up' : 'Registrarse'}
+              {lang === 'en' ? 'Sign up' : 'Registrarse'} 
             </Link>
           </>
         )}
