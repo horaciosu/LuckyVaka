@@ -76,9 +76,7 @@ export default function Navbar({ lang, setLang }) {
         <Link href="/raffles" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
           {lang === 'en' ? 'Explore' : 'Explorar'}
         </Link>
-        <Link href="/host-register" style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
-          {lang === 'en' ? 'List property' : 'Anfitrión'}
-        </Link>
+      {user && <Link href={role === 'host' ? '/host' : hostStatus === 'pending' ? '/host-pending' : '/host-register'} style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>{lang === 'en' ? 'List property' : 'Anfitrión'}</Link>}
 
         <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
           {['en', 'es'].map(l => (
