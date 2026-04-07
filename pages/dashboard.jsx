@@ -5,7 +5,7 @@ import { useAuth } from '../lib/useAuth'
 import { supabase } from '../lib/supabase'
 
 export default function DashboardPage({ lang, setLang }) {
-  const { user, loading, signOut, displayName, initials } = useAuth({ required: true, role: 'guest' })
+  const { user, loading, signOut, displayName, initials } = useAuth({ required: true })
   const [activeTab, setActiveTab] = useState('overview')
   const [purchases, setPurchases] = useState([])
   const [loadingData, setLoadingData] = useState(false)
