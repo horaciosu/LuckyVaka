@@ -56,7 +56,7 @@ const empty = {
   house_rules: '',
   checkin_time: '15:00', checkout_time: '11:00',
   images: [],
-  status: 'pending',
+  status: 'pending_review',
   deed_doc_url: '', address_doc_url: '', fiscal_doc_url: '',
   id_front_doc_url: '', id_back_doc_url: '', passport_doc_url: '', curp_doc_url: '',
 }
@@ -71,13 +71,28 @@ export default function MyProperties({ lang, setLang }) {
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState(null)
   const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState(empty)
+  const [form, setForm] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('luckyvaka_property_draft')
+      if (saved) {
+        try { return JSON.parse(saved) } catch(e) {}
+      }
+    }
+    return empty
+  })
   const [errors, setErrors] = useState({})
   const [docUploading, setDocUploading] = useState({})
   const [docErrors, setDocErrors] = useState({})
 
   const t = (en, es) => lang === 'es' ? es : en
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  // Persistir borrador en localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && view === 'form') {
+      localStorage.setItem('luckyvaka_property_draft', JSON.stringify(form))
+    }
+  }, [form, view])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -145,7 +160,7 @@ export default function MyProperties({ lang, setLang }) {
   const handleSave = async () => {
     setSaving(true)
     setSaveMsg(null)
-    const payload = { ...form, host_id: user.id, status: 'pending' }
+    const payload = { ...form, host_id: user.id, status: 'pending_review' }
     let error
     if (editing) {
       const res = await supabase.from('properties').update(payload).eq('id', editing)
@@ -159,7 +174,7 @@ export default function MyProperties({ lang, setLang }) {
     } else {
       setSaveMsg({ type: 'success', text: t('Property saved! Under review.', '¡Propiedad guardada! En revisión.') })
       await loadProperties(user.id)
-      setTimeout(() => { setView('list'); setForm(empty); setEditing(null); setSaveMsg(null); setStep(1) }, 1800)
+      setTimeout(() => { setView('list'); setForm(empty); setEditing(null); setSaveMsg(null); setStep(1); if (typeof window !== 'undefined') localStorage.removeItem('luckyvaka_property_draft') }, 1800)
     }
     setSaving(false)
   }
