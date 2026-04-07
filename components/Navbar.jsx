@@ -154,7 +154,7 @@ export default function Navbar({ lang, setLang }) {
 
             {[
               { href: '/host', label: lang === 'es' ? 'Panel anfitrión' : 'Host panel', icon: '🏠' },
-              { href: '/dashboard', label: lang === 'es' ? 'Mis boletos' : 'My tickets', icon: '🎟️' },
+              { href: '/dashboard?tab=tickets', label: lang === 'es' ? 'Mis boletos' : 'My tickets', icon: '🎟️' },
               role === 'host'
                 ? { href: '/my-properties', label: lang === 'es' ? 'Mis propiedades' : 'My properties', icon: '🏡' }
                 : { href: '/dashboard', label: lang === 'es' ? 'Mi cuenta' : 'My account', icon: '👤' },

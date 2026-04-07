@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import { useAuth } from '../lib/useAuth'
@@ -7,6 +8,8 @@ import { supabase } from '../lib/supabase'
 export default function DashboardPage({ lang, setLang }) {
   const { user, loading, signOut, displayName, initials } = useAuth({ required: true })
   const [activeTab, setActiveTab] = useState('overview')
+  const router = useRouter()
+  useEffect(() => { if (router.query.tab) setActiveTab(router.query.tab) }, [router.query.tab])
   const [purchases, setPurchases] = useState([])
   const [loadingData, setLoadingData] = useState(false)
 
