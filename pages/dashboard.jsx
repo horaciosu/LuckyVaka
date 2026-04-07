@@ -69,7 +69,7 @@ export default function DashboardPage({ lang, setLang }) {
                 {t(`Hi, ${displayName} 👋`, `Hola, ${displayName} 👋`)}
               </div>
               <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                {t('Member since', 'Miembro desde')} {memberSince} · 🍀 {t('Lucky member', 'Lucky member')}
+                {t('Member since', 'Miembro desde')} {memberSince} · 🍀 {t('Lucky member', 'Lucky Viajero')}
               </div>
             </div>
           </div>
