@@ -201,6 +201,7 @@ export default function Admin({ lang, setLang }) {
   const [hosts, setHosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [adminUser, setAdminUser] = useState(null)
+  const [avatarUrl, setAvatarUrl] = useState(null)
   const [docModal, setDocModal] = useState(null)
   const [actionLoading, setActionLoading] = useState({})
 
@@ -214,6 +215,9 @@ export default function Admin({ lang, setLang }) {
     const role = user.user_metadata?.role
     if (role !== 'admin') { router.push('/'); return }
     setAdminUser(user)
+    // Load avatar from profiles
+    const { data: profile } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).single()
+    if (profile?.avatar_url) setAvatarUrl(profile.avatar_url)
     fetchAll(user)
   }
 
@@ -350,8 +354,8 @@ export default function Admin({ lang, setLang }) {
           <button onClick={fetchAll} style={{ background: '#F3F4F6', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#374151' }}>
             ↻ Actualizar
           </button>
-          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#fff', fontWeight: 700 }}>
-            {adminUser?.email?.[0]?.toUpperCase()}
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#6366F1', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#fff', fontWeight: 700 }}>
+            {avatarUrl ? <img src={avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : adminUser?.email?.[0]?.toUpperCase()}
           </div>
         </div>
       </div>
