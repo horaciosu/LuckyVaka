@@ -214,10 +214,10 @@ export default function Admin({ lang, setLang }) {
     const role = user.user_metadata?.role
     if (role !== 'admin') { router.push('/'); return }
     setAdminUser(user)
-    fetchAll()
+    fetchAll(user)
   }
 
-  const fetchAll = async () => {
+  const fetchAll = async (currentUser) => {
     setLoading(true)
     const [propsRes, rafflesRes, regsRes] = await Promise.all([
       supabase.from('properties').select('*').order('created_at', { ascending: false }),
@@ -232,17 +232,32 @@ export default function Admin({ lang, setLang }) {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
-      if (!token) { console.warn('No session token'); return }
-      const res = await fetch('/api/admin-users', {
-        headers: { Authorization: 'Bearer ' + token }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        const allUsers = data.users || []
-        setUsers(allUsers)
-        setHosts(allUsers.filter(u => u.user_metadata?.role === 'host'))
+      if (!token) {
+        // Try refreshing session
+        const { data: refreshed } = await supabase.auth.refreshSession()
+        const refreshToken = refreshed?.session?.access_token
+        if (!refreshToken) { setLoading(false); return }
+        const res = await fetch('/api/admin-users', {
+          headers: { Authorization: 'Bearer ' + refreshToken }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          const allUsers = data.users || []
+          setUsers(allUsers)
+          setHosts(allUsers.filter(u => u.user_metadata?.role === 'host'))
+        }
+      } else {
+        const res = await fetch('/api/admin-users', {
+          headers: { Authorization: 'Bearer ' + token }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          const allUsers = data.users || []
+          setUsers(allUsers)
+          setHosts(allUsers.filter(u => u.user_metadata?.role === 'host'))
+        }
       }
-    } catch {}
+    } catch(e) { console.error('admin-users error:', e) }
 
     setLoading(false)
   }
