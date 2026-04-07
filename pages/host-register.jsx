@@ -241,6 +241,7 @@ export default function HostRegister({ lang, setLang }) {
         .from('host_applications')
         .insert({
           folio: folioCode,
+        userId: user?.id || null,
           user_id: user?.id || null,
           full_name: form.full_name,
           email: form.email,
@@ -280,6 +281,7 @@ export default function HostRegister({ lang, setLang }) {
           name: form.full_name,
           email: form.email,
           folio: folioCode,
+        userId: user?.id || null,
           body: `Nuevo anfitrión: ${form.full_name} | ${form.email} | Folio: ${folioCode} | Propiedad: ${form.property_name}`,
         }),
       })
