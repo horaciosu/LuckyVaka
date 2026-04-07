@@ -38,6 +38,8 @@ const empty = {
   checkin_time: '15:00', checkout_time: '11:00',
   images: [],
   status: 'pending',
+  deed_doc_url: '',
+  address_doc_url: '',
 }
 
 export default function MyProperties({ lang, setLang }) {
@@ -104,6 +106,8 @@ export default function MyProperties({ lang, setLang }) {
       ...form,
       host_id: freshUserId,
       status: 'pending',
+  deed_doc_url: '',
+  address_doc_url: '',
     }
 
     let error
@@ -423,7 +427,36 @@ export default function MyProperties({ lang, setLang }) {
               )}
             </div>
 
-            {/* Save message */}
+            {/* SECTION 6 - Property Documents */}
+              <div className="card" style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+                  📄 {t('Property documents', 'Documentos de la propiedad')}
+                </div>
+                {[
+                  { key: 'deed_doc', label_es: 'Escrituras o título de propiedad', label_en: 'Property deed or title', required: true },
+                  { key: 'address_doc', label_es: 'Comprobante de domicilio de la propiedad', label_en: 'Property proof of address', required: true },
+                ].map(doc => (
+                  <div key={doc.key} style={{ marginBottom: 16, padding: 12, border: `1px solid ${docErrors[doc.key] ? '#F7C1C1' : 'var(--border)'}`, borderRadius: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>
+                      {t(doc.label_en, doc.label_es)} {doc.required && <span style={{ color: '#E53935', fontSize: 11 }}>Requerido</span>}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>JPG, PNG o PDF. Máx 10MB.</div>
+                    {form[`${doc.key}_url`] ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 12, color: '#0F6E56' }}>✅ {t('Uploaded', 'Subido')}</span>
+                        <button onClick={() => update(`${doc.key}_url`, '')} style={{ fontSize: 11, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>✕ {t('Remove', 'Quitar')}</button>
+                      </div>
+                    ) : (
+                      <label style={{ display: 'inline-block', padding: '6px 14px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12, cursor: 'pointer', background: 'var(--surface)' }}>
+                        {docUploading[doc.key] ? '⏳ ' + t('Uploading...', 'Subiendo...') : '📎 ' + t('Choose file', 'Elegir archivo')}
+                        <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => uploadPropertyDoc(e.target.files[0], doc.key)} />
+                      </label>
+                    )}
+                    {docErrors[doc.key] && <div style={{ fontSize: 11, color: '#E53935', marginTop: 4 }}>⚠️ {t('Upload error. Try again.', 'Error al subir. Intenta de nuevo.')}</div>}
+                  </div>
+                ))}
+              </div>
+              {/* Save message */}
             {saveMsg && (
               <div style={{
                 padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 14,
