@@ -53,7 +53,6 @@ const DocModal = ({ property, onClose }) => {
 
   const handleDoc = (url) => {
     if (!url) return
-    // Si es URL publica de supabase storage, extraer el path y firmar
     if (url.includes('/object/public/host-documents/')) {
       const path = url.split('/object/public/host-documents/')[1]
       getSignedUrl(path)
@@ -79,7 +78,6 @@ const DocModal = ({ property, onClose }) => {
           </div>
           <button onClick={onClose} style={{ background: '#F3F4F6', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 14, color: '#374151' }}>✕ Cerrar</button>
         </div>
-
         {docs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 0', color: '#9CA3AF', fontSize: 14 }}>
             No hay documentos subidos aún.
@@ -190,6 +188,23 @@ const Btn = ({ onClick, children, variant = 'default', disabled }) => {
   )
 }
 
+// ─── MINI BAR CHART ──────────────────────────────────────────────────────────
+const MiniBar = ({ data, maxVal, color = '#6366F1' }) => (
+  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 40 }}>
+    {data.map((d, i) => (
+      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+        <div style={{
+          width: '100%', borderRadius: '3px 3px 0 0',
+          background: i === data.length - 1 ? color : color + '60',
+          height: maxVal > 0 ? `${(d.val / maxVal) * 36}px` : '2px',
+          minHeight: 2, transition: 'height 0.3s ease'
+        }} />
+        <div style={{ fontSize: 9, color: '#9CA3AF', whiteSpace: 'nowrap' }}>{d.label}</div>
+      </div>
+    ))}
+  </div>
+)
+
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 export default function Admin({ lang, setLang }) {
   const router = useRouter()
@@ -199,15 +214,15 @@ export default function Admin({ lang, setLang }) {
   const [registrations, setRegistrations] = useState([])
   const [users, setUsers] = useState([])
   const [hosts, setHosts] = useState([])
+  const [purchases, setPurchases] = useState([])
   const [loading, setLoading] = useState(true)
   const [adminUser, setAdminUser] = useState(null)
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [docModal, setDocModal] = useState(null)
   const [actionLoading, setActionLoading] = useState({})
+  const [earningsPeriod, setEarningsPeriod] = useState('all') // 'all' | '30' | '7'
 
-  useEffect(() => {
-    checkAdmin()
-  }, [])
+  useEffect(() => { checkAdmin() }, [])
 
   const checkAdmin = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -215,7 +230,6 @@ export default function Admin({ lang, setLang }) {
     const role = user.user_metadata?.role
     if (role !== 'admin') { router.push('/'); return }
     setAdminUser(user)
-    // Load avatar from profiles
     const { data: profile } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).single()
     if (profile?.avatar_url) setAvatarUrl(profile.avatar_url)
     fetchAll(user)
@@ -223,27 +237,25 @@ export default function Admin({ lang, setLang }) {
 
   const fetchAll = async (currentUser) => {
     setLoading(true)
-    const [propsRes, rafflesRes, regsRes] = await Promise.all([
+    const [propsRes, rafflesRes, regsRes, purchasesRes] = await Promise.all([
       supabase.from('properties').select('*').order('created_at', { ascending: false }),
-      supabase.from('raffles').select('*, properties(name, city)').order('created_at', { ascending: false }),
+      supabase.from('raffles').select('*, properties(name, city, host_id)').order('created_at', { ascending: false }),
       supabase.from('host_applications').select('*').order('created_at', { ascending: false }),
+      supabase.from('purchases').select('*, raffles(id, slug, ticket_price, currency, status, host_id, properties(name, city))').order('created_at', { ascending: false }),
     ])
     setProperties(propsRes.data || [])
     setRaffles(rafflesRes.data || [])
     setRegistrations(regsRes.data || [])
+    setPurchases(purchasesRes.data || [])
 
-    // Fetch users via service role API
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
       if (!token) {
-        // Try refreshing session
         const { data: refreshed } = await supabase.auth.refreshSession()
         const refreshToken = refreshed?.session?.access_token
         if (!refreshToken) { setLoading(false); return }
-        const res = await fetch('/api/admin-users', {
-          headers: { Authorization: 'Bearer ' + refreshToken }
-        })
+        const res = await fetch('/api/admin-users', { headers: { Authorization: 'Bearer ' + refreshToken } })
         if (res.ok) {
           const data = await res.json()
           const allUsers = data.users || []
@@ -251,9 +263,7 @@ export default function Admin({ lang, setLang }) {
           setHosts(allUsers.filter(u => u.user_metadata?.role === 'host'))
         }
       } else {
-        const res = await fetch('/api/admin-users', {
-          headers: { Authorization: 'Bearer ' + token }
-        })
+        const res = await fetch('/api/admin-users', { headers: { Authorization: 'Bearer ' + token } })
         if (res.ok) {
           const data = await res.json()
           const allUsers = data.users || []
@@ -297,7 +307,90 @@ export default function Admin({ lang, setLang }) {
   }
 
   const fmt = (date) => date ? new Date(date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
-  const fmtMoney = (n) => n ? `$${Number(n).toLocaleString()}` : '—'
+  const fmtMoney = (n, currency = 'MXN') => n ? `$${Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0 })} ${currency}` : '—'
+
+  // ── CÁLCULOS DE GANANCIAS ────────────────────────────────────────────────
+  const PLATFORM_COMMISSION = 0.20 // 20% comisión LuckyVaka
+
+  const filterByPeriod = (items, days) => {
+    if (days === 'all') return items
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - Number(days))
+    return items.filter(p => new Date(p.created_at) >= cutoff)
+  }
+
+  const filteredPurchases = filterByPeriod(purchases, earningsPeriod)
+
+  // Solo compras de rifas completadas o activas (no canceladas)
+  const validPurchases = filteredPurchases.filter(p =>
+    p.raffles?.status === 'completed' || p.raffles?.status === 'active'
+  )
+
+  const totalRevenue = validPurchases.reduce((sum, p) => sum + Number(p.total_paid || 0), 0)
+  const platformEarnings = totalRevenue * PLATFORM_COMMISSION
+  const hostEarnings = totalRevenue - platformEarnings
+  const totalTransactions = validPurchases.length
+
+  // Top rifas por ingresos
+  const raffleRevenue = {}
+  validPurchases.forEach(p => {
+    const key = p.raffle_id
+    if (!raffleRevenue[key]) {
+      raffleRevenue[key] = {
+        id: key,
+        name: p.raffles?.properties?.name || p.raffle_slug || key?.slice(0, 8),
+        city: p.raffles?.properties?.city || '—',
+        status: p.raffles?.status,
+        currency: p.raffles?.currency || 'MXN',
+        total: 0,
+        qty: 0,
+        transactions: 0,
+      }
+    }
+    raffleRevenue[key].total += Number(p.total_paid || 0)
+    raffleRevenue[key].qty += p.qty || 0
+    raffleRevenue[key].transactions += 1
+  })
+  const topRaffles = Object.values(raffleRevenue).sort((a, b) => b.total - a.total)
+
+  // Ingresos por mes (últimos 6 meses)
+  const monthlyData = (() => {
+    const months = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date()
+      d.setMonth(d.getMonth() - i)
+      months.push({
+        label: d.toLocaleDateString('es-MX', { month: 'short' }),
+        year: d.getFullYear(),
+        month: d.getMonth(),
+        val: 0,
+      })
+    }
+    purchases.forEach(p => {
+      const d = new Date(p.created_at)
+      const m = months.find(mo => mo.month === d.getMonth() && mo.year === d.getFullYear())
+      if (m) m.val += Number(p.total_paid || 0)
+    })
+    return months
+  })()
+  const maxMonthVal = Math.max(...monthlyData.map(m => m.val), 1)
+
+  // Ingresos por anfitrión
+  const hostRevenue = {}
+  validPurchases.forEach(p => {
+    const hostId = p.raffles?.host_id
+    if (!hostId) return
+    if (!hostRevenue[hostId]) {
+      hostRevenue[hostId] = { hostId, total: 0, transactions: 0, raffles: new Set() }
+    }
+    hostRevenue[hostId].total += Number(p.total_paid || 0)
+    hostRevenue[hostId].transactions += 1
+    hostRevenue[hostId].raffles.add(p.raffle_id)
+  })
+  const topHosts = Object.values(hostRevenue)
+    .map(h => ({ ...h, raffleCount: h.raffles.size }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5)
 
   const TABS = [
     { id: 'overview',      icon: '📊', label: 'Resumen' },
@@ -306,6 +399,7 @@ export default function Admin({ lang, setLang }) {
     { id: 'hosts',         icon: '🧑‍💼', label: 'Anfitriones' },
     { id: 'users',         icon: '👥', label: 'Usuarios' },
     { id: 'registrations', icon: '📋', label: 'Registros' },
+    { id: 'earnings',      icon: '💰', label: 'Ganancias' },
   ]
 
   const pendingProps = properties.filter(p => p.status === 'pending_review')
@@ -424,6 +518,7 @@ export default function Admin({ lang, setLang }) {
                 <StatCard label="Rifas totales" value={raffles.length} icon="🎟️" sub={`${raffles.filter(r => r.status === 'active').length} activas`} />
                 <StatCard label="Anfitriones" value={hosts.length} icon="🧑‍💼" sub={`${registrations.filter(r => r.status === 'pending').length} solicitudes`} />
                 <StatCard label="Usuarios" value={users.length} icon="👥" sub="Total registrados" />
+                <StatCard label="Ingresos totales" value={`$${totalRevenue.toLocaleString('es-MX', { minimumFractionDigits: 0 })}`} icon="💰" sub={`${purchases.length} transacciones`} />
               </div>
 
               {(pendingProps.length > 0 || pendingRegs.length > 0) && (
@@ -654,6 +749,171 @@ export default function Admin({ lang, setLang }) {
                   empty="Sin solicitudes de anfitrión"
                 />
               </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════
+              ── GANANCIAS ──
+          ══════════════════════════════════════════════ */}
+          {activeTab === 'earnings' && (
+            <div>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#111', letterSpacing: '-0.02em' }}>💰 Ganancias</div>
+                  <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>
+                    Ingresos totales · Comisión LuckyVaka (20%) · Pago a anfitriones
+                  </div>
+                </div>
+                {/* Filtro de período */}
+                <div style={{ display: 'flex', gap: 6, background: '#F3F4F6', borderRadius: 10, padding: 4 }}>
+                  {[{ id: '7', label: '7 días' }, { id: '30', label: '30 días' }, { id: 'all', label: 'Todo' }].map(p => (
+                    <button key={p.id} onClick={() => setEarningsPeriod(p.id)} style={{
+                      padding: '5px 14px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                      background: earningsPeriod === p.id ? '#fff' : 'transparent',
+                      color: earningsPeriod === p.id ? '#111' : '#9CA3AF',
+                      boxShadow: earningsPeriod === p.id ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                      transition: 'all 0.15s'
+                    }}>{p.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* KPIs principales */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+                {[
+                  { label: 'Ingreso total', val: fmtMoney(totalRevenue), icon: '💵', sub: `${totalTransactions} transacciones`, color: '#6366F1', bg: '#EEF2FF' },
+                  { label: 'Comisión LuckyVaka (20%)', val: fmtMoney(platformEarnings), icon: '⭐', sub: 'Tu ganancia neta', color: '#059669', bg: '#D1FAE5' },
+                  { label: 'Pago a anfitriones (80%)', val: fmtMoney(hostEarnings), icon: '🏠', sub: `${topHosts.length} anfitriones activos`, color: '#7C3AED', bg: '#EDE9FE' },
+                  { label: 'Ticket promedio', val: totalTransactions > 0 ? fmtMoney(totalRevenue / totalTransactions) : '—', icon: '🎟', sub: 'Por transacción', color: '#D97706', bg: '#FEF3C7' },
+                ].map((k, i) => (
+                  <div key={i} style={{
+                    background: '#fff', borderRadius: 14, padding: '18px 20px',
+                    border: `1px solid ${k.bg}`,
+                    borderLeft: `4px solid ${k.color}`,
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k.label}</div>
+                      <div style={{ fontSize: 18, lineHeight: 1 }}>{k.icon}</div>
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: '#111', letterSpacing: '-0.02em', marginBottom: 4 }}>{k.val}</div>
+                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>{k.sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Gráfica mensual + split visual */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+
+                {/* Gráfica de barras últimos 6 meses */}
+                <div style={{ background: '#fff', borderRadius: 14, padding: '20px 24px', border: '1px solid #F3F4F6' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 4 }}>Ingresos por mes</div>
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 16 }}>Últimos 6 meses · total bruto</div>
+                  <MiniBar data={monthlyData} maxVal={maxMonthVal} color="#6366F1" />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
+                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>
+                      Mejor mes: <strong style={{ color: '#111' }}>
+                        {monthlyData.reduce((best, m) => m.val > best.val ? m : best, monthlyData[0])?.label}
+                      </strong>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#6366F1', fontWeight: 700 }}>
+                      {fmtMoney(monthlyData.reduce((s, m) => s + m.val, 0))} total
+                    </div>
+                  </div>
+                </div>
+
+                {/* Distribución del ingreso */}
+                <div style={{ background: '#fff', borderRadius: 14, padding: '20px 24px', border: '1px solid #F3F4F6' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 4 }}>Distribución del ingreso</div>
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 20 }}>Cómo se divide cada peso recaudado</div>
+
+                  {totalRevenue > 0 ? (
+                    <>
+                      {/* Barra de distribución visual */}
+                      <div style={{ height: 28, borderRadius: 8, overflow: 'hidden', display: 'flex', marginBottom: 16 }}>
+                        <div style={{ width: '20%', background: '#6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 10, color: '#fff', fontWeight: 800 }}>20%</span>
+                        </div>
+                        <div style={{ width: '80%', background: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 10, color: '#fff', fontWeight: 800 }}>80%</span>
+                        </div>
+                      </div>
+                      {[
+                        { label: 'LuckyVaka (comisión)', pct: '20%', amount: platformEarnings, color: '#6366F1' },
+                        { label: 'Anfitriones (pago)', pct: '80%', amount: hostEarnings, color: '#7C3AED' },
+                      ].map(d => (
+                        <div key={d.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: d.color }} />
+                            <span style={{ fontSize: 12, color: '#374151' }}>{d.label}</span>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>{fmtMoney(d.amount)}</div>
+                            <div style={{ fontSize: 10, color: '#9CA3AF' }}>{d.pct}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '24px 0', color: '#9CA3AF', fontSize: 13 }}>
+                      Sin transacciones en este período
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Top rifas por ingresos */}
+              <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #F3F4F6', marginBottom: 16 }}>
+                <SectionHeader title="Top rifas por ingresos" count={topRaffles.length} />
+                {topRaffles.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 0', color: '#9CA3AF', fontSize: 13 }}>
+                    Sin datos de ventas en este período
+                  </div>
+                ) : (
+                  <Table
+                    cols={['Propiedad', 'Ubicación', 'Estado', 'Transacciones', 'Boletos', 'Ingreso total', 'LuckyVaka (20%)', 'Anfitrión (80%)']}
+                    rows={topRaffles.map((r, i) => [
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: '#9CA3AF', width: 16 }}>#{i + 1}</span>
+                        <div style={{ fontWeight: 600, fontSize: 12 }}>{r.name}</div>
+                      </div>,
+                      <span style={{ fontSize: 11, color: '#6B7280' }}>{r.city}</span>,
+                      <Badge status={r.status} />,
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{r.transactions}</span>,
+                      <span style={{ fontSize: 12 }}>{r.qty}</span>,
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#111' }}>{fmtMoney(r.total, r.currency)}</span>,
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#059669' }}>{fmtMoney(r.total * PLATFORM_COMMISSION, r.currency)}</span>,
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#7C3AED' }}>{fmtMoney(r.total * (1 - PLATFORM_COMMISSION), r.currency)}</span>,
+                    ])}
+                    empty="Sin rifas con ventas"
+                  />
+                )}
+              </div>
+
+              {/* Top anfitriones por ingresos generados */}
+              {topHosts.length > 0 && (
+                <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #F3F4F6' }}>
+                  <SectionHeader title="Anfitriones por volumen" count={topHosts.length} />
+                  <Table
+                    cols={['Anfitrión ID', 'Rifas', 'Transacciones', 'Volumen total', 'Su pago (80%)']}
+                    rows={topHosts.map((h, i) => [
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: '#9CA3AF', width: 16 }}>#{i + 1}</span>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#7C3AED' }}>
+                          {h.hostId.slice(0, 2).toUpperCase()}
+                        </div>
+                        <span style={{ fontSize: 11, color: '#6B7280', fontFamily: 'monospace' }}>{h.hostId.slice(0, 8)}…</span>
+                      </div>,
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{h.raffleCount}</span>,
+                      <span style={{ fontSize: 12 }}>{h.transactions}</span>,
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#111' }}>{fmtMoney(h.total)}</span>,
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#7C3AED' }}>{fmtMoney(h.total * 0.8)}</span>,
+                    ])}
+                    empty="Sin datos"
+                  />
+                </div>
+              )}
             </div>
           )}
 
