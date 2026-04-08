@@ -328,7 +328,7 @@ export default function DrawLivePage({ lang, setLang }) {
               {t('Ticket', 'Boleto')} #{winner.ticket}
             </h2>
             <p style={{ color: '#9CA3AF', fontSize: 14, marginBottom: 40 }}>
-              {t('The lucky winner has been notified by email.', 'El afortunado ganador ha sido notificado por correo.')}
+              {t('The lucky winner has been notified.', 'El afortunado ganador ha sido notificado.')}
             </p>
 
             {/* Ticket ganador visual */}
@@ -359,7 +359,6 @@ export default function DrawLivePage({ lang, setLang }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, maxWidth: 400, margin: '0 auto 40px' }}>
               {[
                 { label: t('Stay date', 'Fecha estancia'), val: formatDate(raffle.stay_date) },
-                { label: t('Prize value', 'Valor del premio'), val: `$${raffle.stay_value || '—'} ${raffle.currency || 'MXN'}` },
               ].map(d => (
                 <div key={d.label} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '12px 16px', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <div style={{ fontSize: 10, color: '#6B7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{d.label}</div>
