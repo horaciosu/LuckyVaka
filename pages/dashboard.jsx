@@ -15,6 +15,38 @@ export default function DashboardPage({ lang, setLang }) {
 
   const t = (en, es) => lang === 'es' ? es : en
 
+  // Estado modal de soporte
+  const [supportModal, setSupportModal] = useState(null) // purchase object
+  const [supportType, setSupportType] = useState('')
+  const [supportDesc, setSupportDesc] = useState('')
+  const [supportSending, setSupportSending] = useState(false)
+  const [supportSent, setSupportSent] = useState(false)
+
+  const sendSupportTicket = async () => {
+    if (!supportType || !supportDesc.trim()) return
+    setSupportSending(true)
+    const p = supportModal
+    await supabase.from('support_tickets').insert({
+      user_id: user.id,
+      user_email: user.email,
+      user_name: displayName,
+      raffle_id: p.raffle_id,
+      raffle_slug: p.raffle_slug,
+      property_name: p.raffles?.properties?.name || p.raffle_slug,
+      type: supportType,
+      description: supportDesc,
+      status: 'open',
+    })
+    setSupportSending(false)
+    setSupportSent(true)
+    setTimeout(() => {
+      setSupportModal(null)
+      setSupportSent(false)
+      setSupportType('')
+      setSupportDesc('')
+    }, 2000)
+  }
+
   // Admin no debe ver el dashboard — redirigir al panel admin
   useEffect(() => {
     if (user && user.email === 'horaciosoriau@gmail.com') {
@@ -292,6 +324,9 @@ export default function DashboardPage({ lang, setLang }) {
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button className="btn-secondary" style={{ fontSize: 12 }}>📤 {t('Share win', 'Compartir')}</button>
                     <Link href="/raffles" className="btn-secondary" style={{ fontSize: 12 }}>🔁 {t('Raffle again', 'Participar de nuevo')}</Link>
+                    <button onClick={() => setSupportModal(p)} style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8, border: '1px solid #FECACA', background: '#FEE2E2', color: '#DC2626', cursor: 'pointer', fontWeight: 500 }}>
+                      🚨 {t('Report issue', 'Reportar problema')}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -314,5 +349,73 @@ export default function DashboardPage({ lang, setLang }) {
 
       </div>
     </div>
+
+      {/* ── MODAL DE SOPORTE ── */}
+      {supportModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setSupportModal(null)}>
+          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}>
+            {supportSent ? (
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+                  {t('Report sent!', '¡Reporte enviado!')}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>
+                  {t('We will review your case shortly.', 'Revisaremos tu caso a la brevedad.')}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>🚨 {t('Report a problem', 'Reportar un problema')}</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{supportModal.raffles?.properties?.name || supportModal.raffle_slug}</div>
+                  </div>
+                  <button onClick={() => setSupportModal(null)} style={{ background: 'var(--bg)', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 13, color: 'var(--muted)' }}>✕</button>
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>{t('Type of problem', 'Tipo de problema')}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[
+                      ['host_cancelled', t('Host cancelled my stay', 'El anfitrión canceló mi estancia')],
+                      ['wrong_dates', t('Dates are incorrect', 'Las fechas son incorrectas')],
+                      ['property_mismatch', t('Property does not match photos', 'La propiedad no corresponde a las fotos')],
+                      ['refund', t('I need a refund', 'Necesito un reembolso')],
+                      ['other', t('Other', 'Otro')],
+                    ].map(([val, label]) => (
+                      <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, border: `1px solid ${supportType === val ? 'var(--brand)' : 'var(--border)'}`, background: supportType === val ? 'var(--brand-light, #E6F1FB)' : 'transparent', cursor: 'pointer', fontSize: 13 }}>
+                        <input type="radio" name="supportType" value={val} checked={supportType === val} onChange={() => setSupportType(val)} style={{ accentColor: 'var(--brand)' }} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>{t('Describe what happened', 'Describe qué pasó')}</div>
+                  <textarea
+                    value={supportDesc}
+                    onChange={e => setSupportDesc(e.target.value)}
+                    placeholder={t('Please provide details...', 'Por favor proporciona detalles...')}
+                    rows={4}
+                    style={{ width: '100%', borderRadius: 10, border: '1px solid var(--border)', padding: '10px 12px', fontSize: 13, color: 'var(--text)', background: 'var(--bg)', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  />
+                </div>
+
+                <button
+                  onClick={sendSupportTicket}
+                  disabled={!supportType || !supportDesc.trim() || supportSending}
+                  style={{ width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: (!supportType || !supportDesc.trim()) ? 'var(--border)' : 'var(--brand)', color: (!supportType || !supportDesc.trim()) ? 'var(--muted)' : '#fff', fontSize: 14, fontWeight: 700, cursor: (!supportType || !supportDesc.trim()) ? 'not-allowed' : 'pointer' }}
+                >
+                  {supportSending ? t('Sending...', 'Enviando...') : t('Send report', 'Enviar reporte')}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
   )
 }

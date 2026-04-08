@@ -220,7 +220,9 @@ export default function Admin({ lang, setLang }) {
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [docModal, setDocModal] = useState(null)
   const [actionLoading, setActionLoading] = useState({})
-  const [earningsPeriod, setEarningsPeriod] = useState('all') // 'all' | '30' | '7'
+  const [earningsPeriod, setEarningsPeriod] = useState('all')
+  const [tickets, setTickets] = useState([])
+  const [ticketFilter, setTicketFilter] = useState('all') // all | open | in_progress | resolved // 'all' | '30' | '7'
 
   useEffect(() => { checkAdmin() }, [])
 
@@ -247,10 +249,14 @@ export default function Admin({ lang, setLang }) {
       supabase.from('raffles').select('*, properties(name, city, host_id)').order('created_at', { ascending: false }),
       supabase.from('host_applications').select('*').order('created_at', { ascending: false }),
       supabase.from('purchases').select('*, raffles(id, slug, ticket_price, currency, status, host_id, properties(name, city))').order('created_at', { ascending: false }),
+      supabase.from('support_tickets').select('*').order('created_at', { ascending: false }),
     ])
     setProperties(propsRes.data || [])
     setRaffles(rafflesRes.data || [])
     setRegistrations(regsRes.data || [])
+    // tickets viene en el índice 3 (o 4 si hay purchases)
+    const ticketsRes = await supabase.from('support_tickets').select('*').order('created_at', { ascending: false })
+    setTickets(ticketsRes.data || [])
     setPurchases(purchasesRes.data || [])
 
     try {
@@ -309,6 +315,15 @@ export default function Admin({ lang, setLang }) {
         setRegistrations(r => r.map(x => x.id === reg.id ? { ...x, status: action === 'approve' ? 'approved' : 'rejected' } : x))
       }
     } finally { setAction(reg.id, false) }
+  }
+
+  const updateTicketStatus = async (id, status, notes) => {
+    setAction(id, true)
+    const update = { status, updated_at: new Date().toISOString() }
+    if (notes !== undefined) update.admin_notes = notes
+    await supabase.from('support_tickets').update(update).eq('id', id)
+    setTickets(t => t.map(x => x.id === id ? { ...x, ...update } : x))
+    setAction(id, false)
   }
 
   const fmt = (date) => date ? new Date(date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
@@ -405,6 +420,7 @@ export default function Admin({ lang, setLang }) {
     { id: 'users',         icon: '👥', label: 'Usuarios' },
     { id: 'registrations', icon: '📋', label: 'Registros' },
     { id: 'draws', icon: '🎯', label: 'Sorteos' },
+    { id: 'support', icon: '🎧', label: 'Soporte' },
     { id: 'earnings',      icon: '💰', label: 'Ganancias' },
   ]
 
@@ -1057,6 +1073,113 @@ export default function Admin({ lang, setLang }) {
               </div>
             </div>
           )}
+
+          {/* ══════════════════════════════════════════════
+              ── SOPORTE ──
+          ══════════════════════════════════════════════ */}
+          {activeTab === 'support' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#111', letterSpacing: '-0.02em' }}>🎧 Soporte</div>
+                  <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>
+                    {tickets.length} ticket{tickets.length !== 1 ? 's' : ''} · {tickets.filter(t => t.status === 'open').length} abiertos
+                  </div>
+                </div>
+                {/* Filtros */}
+                <div style={{ display: 'flex', gap: 6, background: '#F3F4F6', borderRadius: 10, padding: 4 }}>
+                  {[
+                    { id: 'all', label: 'Todos' },
+                    { id: 'open', label: 'Abiertos' },
+                    { id: 'in_progress', label: 'En proceso' },
+                    { id: 'resolved', label: 'Resueltos' },
+                  ].map(f => (
+                    <button key={f.id} onClick={() => setTicketFilter(f.id)} style={{
+                      padding: '5px 12px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                      background: ticketFilter === f.id ? '#fff' : 'transparent',
+                      color: ticketFilter === f.id ? '#111' : '#9CA3AF',
+                      boxShadow: ticketFilter === f.id ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                    }}>{f.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Lista de tickets */}
+              {tickets.filter(tk => ticketFilter === 'all' || tk.status === ticketFilter).length === 0 ? (
+                <div style={{ background: '#fff', borderRadius: 14, padding: 48, border: '1px solid #F3F4F6', textAlign: 'center' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>🎧</div>
+                  <div style={{ fontSize: 14, color: '#9CA3AF' }}>
+                    {ticketFilter === 'all' ? 'Sin tickets de soporte aún' : `Sin tickets ${ticketFilter === 'open' ? 'abiertos' : ticketFilter === 'in_progress' ? 'en proceso' : 'resueltos'}`}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {tickets
+                    .filter(tk => ticketFilter === 'all' || tk.status === ticketFilter)
+                    .map(tk => {
+                      const TYPE_LABELS = {
+                        host_cancelled: 'Anfitrión canceló',
+                        wrong_dates: 'Fechas incorrectas',
+                        property_mismatch: 'Propiedad no corresponde',
+                        refund: 'Solicitud de reembolso',
+                        other: 'Otro',
+                      }
+                      const STATUS_COLORS = {
+                        open: { bg: '#FEE2E2', color: '#DC2626', label: 'Abierto' },
+                        in_progress: { bg: '#FEF3C7', color: '#D97706', label: 'En proceso' },
+                        resolved: { bg: '#D1FAE5', color: '#059669', label: 'Resuelto' },
+                        closed: { bg: '#F3F4F6', color: '#6B7280', label: 'Cerrado' },
+                      }
+                      const sc = STATUS_COLORS[tk.status] || STATUS_COLORS.open
+
+                      return (
+                        <div key={tk.id} style={{ background: '#fff', borderRadius: 14, padding: '20px 24px', border: '1px solid #F3F4F6', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 12 }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: sc.bg, color: sc.color }}>{sc.label}</span>
+                                <span style={{ fontSize: 11, background: '#F3F4F6', color: '#6B7280', padding: '3px 8px', borderRadius: 6 }}>{TYPE_LABELS[tk.type] || tk.type}</span>
+                              </div>
+                              <div style={{ fontSize: 14, fontWeight: 600, color: '#111', marginBottom: 4 }}>{tk.property_name || tk.raffle_slug}</div>
+                              <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
+                                👤 {tk.user_name || tk.user_email} · 📅 {fmt(tk.created_at)}
+                              </div>
+                              <div style={{ fontSize: 13, color: '#374151', background: '#F9FAFB', borderRadius: 8, padding: '10px 12px', lineHeight: 1.6 }}>
+                                {tk.description}
+                              </div>
+                              {tk.admin_notes && (
+                                <div style={{ marginTop: 8, fontSize: 12, color: '#6366F1', background: '#EEF2FF', borderRadius: 8, padding: '8px 12px' }}>
+                                  📝 Nota interna: {tk.admin_notes}
+                                </div>
+                              )}
+                            </div>
+                            {/* Acciones */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                              {tk.status === 'open' && (
+                                <Btn onClick={() => updateTicketStatus(tk.id, 'in_progress')} disabled={actionLoading[tk.id]}>
+                                  En proceso
+                                </Btn>
+                              )}
+                              {tk.status === 'in_progress' && (
+                                <Btn onClick={() => updateTicketStatus(tk.id, 'resolved')} variant="approve" disabled={actionLoading[tk.id]}>
+                                  ✓ Resolver
+                                </Btn>
+                              )}
+                              {(tk.status === 'open' || tk.status === 'in_progress') && (
+                                <Btn onClick={() => updateTicketStatus(tk.id, 'closed')} variant="reject" disabled={actionLoading[tk.id]}>
+                                  Cerrar
+                                </Btn>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                </div>
+              )}
+            </div>
+          )}
+
 
         </div>
       </div>
