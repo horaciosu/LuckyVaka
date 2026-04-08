@@ -925,6 +925,138 @@ export default function Admin({ lang, setLang }) {
             </div>
           )}
 
+
+          {/* ══════════════════════════════════════════════
+              ── SORTEOS ──
+          ══════════════════════════════════════════════ */}
+          {activeTab === 'draws' && (
+            <div>
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#111', letterSpacing: '-0.02em' }}>🎯 Sorteos</div>
+                <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>
+                  Gestiona y ejecuta los sorteos de cada rifa
+                </div>
+              </div>
+
+              {/* Rifas activas listas para sortear */}
+              {raffles.filter(r => r.status === 'active').length > 0 && (
+                <div style={{ background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 12, padding: '16px 20px', marginBottom: 20 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#15803D', marginBottom: 4 }}>
+                    🟢 {raffles.filter(r => r.status === 'active').length} rifa{raffles.filter(r => r.status === 'active').length > 1 ? 's' : ''} activa{raffles.filter(r => r.status === 'active').length > 1 ? 's' : ''}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#16A34A' }}>
+                    Puedes ejecutar el sorteo desde la página en vivo o usar el botón de cada rifa abajo.
+                  </div>
+                </div>
+              )}
+
+              {/* Todas las rifas con acciones de sorteo */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {raffles.length === 0 ? (
+                  <div style={{ background: '#fff', borderRadius: 14, padding: 40, border: '1px solid #F3F4F6', textAlign: 'center', color: '#9CA3AF', fontSize: 13 }}>
+                    Sin rifas registradas aún
+                  </div>
+                ) : raffles.map(r => {
+                  const drawUrl = '/draw/' + r.slug
+                  const isActive = r.status === 'active'
+                  const isCompleted = r.status === 'completed'
+                  const isCancelled = r.status === 'cancelled'
+                  const soldCount = (r.sold_tickets || []).length || r.tickets_sold || 0
+                  const pct = r.total_tickets > 0 ? Math.round((soldCount / r.total_tickets) * 100) : 0
+                  const drawDate = r.draw_date ? new Date(r.draw_date + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
+
+                  return (
+                    <div key={r.id} style={{
+                      background: '#fff', borderRadius: 14, padding: '20px 24px',
+                      border: isCompleted ? '1px solid #86EFAC' : isActive ? '1px solid #6EE7B7' : '1px solid #F3F4F6',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>
+                              {r.properties?.name || r.slug}
+                            </div>
+                            <Badge status={r.status} />
+                          </div>
+                          <div style={{ display: 'flex', gap: 20, fontSize: 12, color: '#6B7280', flexWrap: 'wrap' }}>
+                            <span>📍 {r.properties?.city || '—'}</span>
+                            <span>🎯 Sorteo: <strong style={{ color: '#374151' }}>{drawDate}</strong></span>
+                            <span>🎟 {soldCount} / {r.total_tickets} boletos vendidos</span>
+                            <span>💰 ${Number(r.ticket_price || 0).toLocaleString()} {r.currency || 'MXN'} c/u</span>
+                          </div>
+
+                          {/* Barra de progreso */}
+                          <div style={{ marginTop: 10 }}>
+                            <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: pct + '%', background: isCompleted ? '#10B981' : '#6366F1', borderRadius: 3, transition: 'width 0.3s' }} />
+                            </div>
+                            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 3 }}>{pct}% vendido</div>
+                          </div>
+
+                          {/* Ganador si está completada */}
+                          {isCompleted && r.winner_ticket && (
+                            <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 8, padding: '6px 12px' }}>
+                              <span style={{ fontSize: 16 }}>🏆</span>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#15803D' }}>
+                                Ganador: Boleto #{r.winner_ticket}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Acciones */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0, alignItems: 'flex-end' }}>
+                          {/* Ver página en vivo */}
+                          <a href={drawUrl} target="_blank" rel="noopener noreferrer" style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                            background: isActive ? 'linear-gradient(135deg, #1A6B3C, #2E8B57)' : '#F3F4F6',
+                            color: isActive ? '#fff' : '#6B7280',
+                            textDecoration: 'none', border: 'none',
+                            boxShadow: isActive ? '0 2px 8px rgba(26,107,60,0.25)' : 'none'
+                          }}>
+                            {isActive ? '🔴 Página en vivo' : '👁 Ver página'}
+                          </a>
+
+                          {/* Copiar link */}
+                          <button onClick={() => {
+                            navigator.clipboard.writeText('https://luckyvaka.com' + drawUrl)
+                            alert('Link copiado: luckyvaka.com' + drawUrl)
+                          }} style={{
+                            padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                            background: '#EEF2FF', color: '#6366F1', border: '1px solid #C7D2FE', cursor: 'pointer'
+                          }}>
+                            🔗 Copiar link
+                          </button>
+
+                          {/* Cambiar estado */}
+                          {!isCompleted && !isCancelled && (
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              {r.status === 'draft' && (
+                                <Btn onClick={() => updateRaffleStatus(r.id, 'active')} variant="approve" disabled={actionLoading[r.id]}>
+                                  Activar
+                                </Btn>
+                              )}
+                              {r.status === 'active' && (
+                                <Btn onClick={() => updateRaffleStatus(r.id, 'completed')} disabled={actionLoading[r.id]}>
+                                  Completar
+                                </Btn>
+                              )}
+                              <Btn onClick={() => updateRaffleStatus(r.id, 'cancelled')} variant="reject" disabled={actionLoading[r.id]}>
+                                Cancelar
+                              </Btn>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
