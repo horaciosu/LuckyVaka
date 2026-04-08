@@ -564,6 +564,107 @@ export default function Admin({ lang, setLang }) {
                 </div>
               )}
 
+              {/* ── MÉTRICAS DE CONVERSIÓN ── */}
+              {raffles.length > 0 && (() => {
+                const activeRaffles = raffles.filter(r => r.status === 'active')
+                const completedRaffles = raffles.filter(r => r.status === 'completed')
+                const cancelledRaffles = raffles.filter(r => r.status === 'cancelled')
+                const draftRaffles = raffles.filter(r => r.status === 'draft')
+
+                // Tasa de activación: rifas que llegaron a active o completed vs total
+                const activatedCount = raffles.filter(r => ['active','completed'].includes(r.status)).length
+                const activationRate = raffles.length > 0 ? Math.round((activatedCount / raffles.length) * 100) : 0
+
+                // Tasa de llenado promedio (tickets vendidos / total)
+                const fillRates = raffles
+                  .filter(r => r.total_tickets > 0)
+                  .map(r => ((r.tickets_sold || (r.sold_tickets || []).length || 0) / r.total_tickets) * 100)
+                const avgFillRate = fillRates.length > 0 ? Math.round(fillRates.reduce((a,b) => a+b, 0) / fillRates.length) : 0
+
+                // Rifas con problema (canceladas o sin activar)
+                const problemRaffles = cancelledRaffles.length + draftRaffles.length
+
+                // Ingresos por rifa activa
+                const revenuePerRaffle = activeRaffles.length > 0 ? Math.round(totalRevenue / Math.max(completedRaffles.length + activeRaffles.length, 1)) : 0
+
+                const metrics = [
+                  {
+                    label: 'Tasa de activación',
+                    value: activationRate + '%',
+                    sub: `${activatedCount} de ${raffles.length} rifas activadas`,
+                    color: activationRate >= 70 ? '#059669' : activationRate >= 40 ? '#D97706' : '#DC2626',
+                    bg: activationRate >= 70 ? '#D1FAE5' : activationRate >= 40 ? '#FEF3C7' : '#FEE2E2',
+                    pct: activationRate,
+                  },
+                  {
+                    label: 'Llenado promedio',
+                    value: avgFillRate + '%',
+                    sub: `Promedio de boletos vendidos`,
+                    color: avgFillRate >= 70 ? '#059669' : avgFillRate >= 40 ? '#D97706' : '#DC2626',
+                    bg: avgFillRate >= 70 ? '#D1FAE5' : avgFillRate >= 40 ? '#FEF3C7' : '#FEE2E2',
+                    pct: avgFillRate,
+                  },
+                  {
+                    label: 'Rifas completadas',
+                    value: completedRaffles.length,
+                    sub: `${activeRaffles.length} activas · ${cancelledRaffles.length} canceladas`,
+                    color: '#6366F1',
+                    bg: '#EEF2FF',
+                    pct: raffles.length > 0 ? Math.round((completedRaffles.length / raffles.length) * 100) : 0,
+                  },
+                  {
+                    label: 'Ingreso por rifa',
+                    value: '$' + revenuePerRaffle.toLocaleString('es-MX'),
+                    sub: `Promedio rifas activas/completadas`,
+                    color: '#059669',
+                    bg: '#D1FAE5',
+                    pct: null,
+                  },
+                ]
+
+                return (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 12 }}>📈 Métricas de conversión</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                      {metrics.map((m, i) => (
+                        <div key={i} style={{ background: '#fff', borderRadius: 12, padding: '14px 16px', border: '1px solid #F3F4F6' }}>
+                          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{m.label}</div>
+                          <div style={{ fontSize: 24, fontWeight: 800, color: '#111', marginBottom: 4 }}>{m.value}</div>
+                          {m.pct !== null && (
+                            <div style={{ height: 4, background: '#F3F4F6', borderRadius: 2, overflow: 'hidden', marginBottom: 6 }}>
+                              <div style={{ height: '100%', width: Math.min(m.pct, 100) + '%', background: m.color, borderRadius: 2, transition: 'width 0.5s ease' }} />
+                            </div>
+                          )}
+                          <div style={{ fontSize: 10, color: '#9CA3AF' }}>{m.sub}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Rifas problemáticas */}
+                    {(cancelledRaffles.length > 0 || draftRaffles.filter(r => {
+                      const created = new Date(r.created_at)
+                      const days = (new Date() - created) / 86400000
+                      return days > 7
+                    }).length > 0) && (
+                      <div style={{ marginTop: 10, background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: 16 }}>⚠️</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#92400E' }}>Rifas que requieren atención</div>
+                          <div style={{ fontSize: 11, color: '#B45309', marginTop: 2 }}>
+                            {cancelledRaffles.length > 0 && `${cancelledRaffles.length} cancelada${cancelledRaffles.length > 1 ? 's' : ''}`}
+                            {cancelledRaffles.length > 0 && draftRaffles.length > 0 && ' · '}
+                            {draftRaffles.length > 0 && `${draftRaffles.length} en borrador sin activar`}
+                          </div>
+                        </div>
+                        <button onClick={() => setActiveTab('raffles')} style={{ fontSize: 11, fontWeight: 700, color: '#92400E', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
+                          Ver rifas →
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #F3F4F6' }}>
                   <SectionHeader title="Rifas recientes" count={raffles.slice(0, 5).length} />
