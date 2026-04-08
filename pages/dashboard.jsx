@@ -348,7 +348,6 @@ export default function DashboardPage({ lang, setLang }) {
         )}
 
       </div>
-    </div>
 
       {/* ── MODAL DE SOPORTE ── */}
       {supportModal && (
