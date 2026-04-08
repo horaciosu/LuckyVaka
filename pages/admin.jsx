@@ -404,6 +404,7 @@ export default function Admin({ lang, setLang }) {
     { id: 'hosts',         icon: '🧑‍💼', label: 'Anfitriones' },
     { id: 'users',         icon: '👥', label: 'Usuarios' },
     { id: 'registrations', icon: '📋', label: 'Registros' },
+    { id: 'draws', icon: '🎯', label: 'Sorteos' },
     { id: 'earnings',      icon: '💰', label: 'Ganancias' },
   ]
 
