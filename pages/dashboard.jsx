@@ -417,5 +417,6 @@ export default function DashboardPage({ lang, setLang }) {
           </div>
         </div>
       )}
+    </div>
   )
 }
