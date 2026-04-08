@@ -106,6 +106,15 @@ export default function RafflePage({ lang, setLang }) {
   const amenities=property?.amenities||[]
   const amenityLabels=lang==='es'?AMENITY_LABELS_ES:AMENITY_LABELS_EN
   const prize=(raffle.ticket_price*raffle.total_tickets*0.77).toFixed(0)
+
+  // Detectar si el sorteo es inminente (menos de 24 horas) o ya pasó
+  const drawDateTime = raffle?.draw_date ? new Date(raffle.draw_date + 'T20:00:00') : null
+  const now = new Date()
+  const hoursUntilDraw = drawDateTime ? (drawDateTime - now) / 3600000 : null
+  const isDrawSoon = hoursUntilDraw !== null && hoursUntilDraw <= 24 && hoursUntilDraw > 0
+  const isDrawToday = hoursUntilDraw !== null && hoursUntilDraw <= 2 && hoursUntilDraw > 0
+  const isCompleted = raffle?.status === 'completed'
+
   return (
     <div style={{minHeight:'100vh',background:'var(--bg)'}}>
       <Navbar lang={lang} setLang={setLang}/>
@@ -121,6 +130,31 @@ export default function RafflePage({ lang, setLang }) {
             {property?.guests&&<span>👥 {t('up to','hasta')} {property.guests} {t('guests','huéspedes')}</span>}
           </div>
         </div>
+
+        {/* Banner sorteo en vivo / próximo */}
+        {(isDrawSoon || isCompleted) && (
+          <div style={{
+            background: isCompleted ? 'linear-gradient(135deg, #1A6B3C, #2E8B57)' : isDrawToday ? 'linear-gradient(135deg, #DC2626, #EF4444)' : 'linear-gradient(135deg, #D97706, #F59E0B)',
+            borderRadius: 12, padding: '14px 20px', marginBottom: 20,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12
+          }}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <div style={{width:10,height:10,borderRadius:'50%',background:'#fff',opacity:isDrawToday||isCompleted?1:0.7,animation:isDrawToday?'pulse 1s ease infinite':undefined}} />
+              <span style={{fontSize:13,fontWeight:700,color:'#fff'}}>
+                {isCompleted ? (lang==='es'?'🏆 ¡Ya tenemos ganador! Ver resultado':'🏆 We have a winner! See result') :
+                 isDrawToday ? (lang==='es'?'🔴 ¡El sorteo es HOY! Entra a verlo en vivo':'🔴 Draw is TODAY! Watch it live') :
+                 (lang==='es'?'⏰ Sorteo en menos de 24 horas':'⏰ Draw in less than 24 hours')}
+              </span>
+            </div>
+            <a href={'/draw/' + slug} style={{
+              background:'rgba(255,255,255,0.2)', border:'1px solid rgba(255,255,255,0.4)',
+              color:'#fff', textDecoration:'none', padding:'7px 16px',
+              borderRadius:8, fontSize:12, fontWeight:700, flexShrink:0
+            }}>
+              {isCompleted ? (lang==='es'?'Ver ganador →':'See winner →') : (lang==='es'?'Ver en vivo →':'Watch live →')}
+            </a>
+          </div>
+        )}
         <PropertyGallery images={images} t={t}/>
         <div className="rp-grid">
           <div>
