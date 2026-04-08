@@ -15,6 +15,13 @@ export default function DashboardPage({ lang, setLang }) {
 
   const t = (en, es) => lang === 'es' ? es : en
 
+  // Admin no debe ver el dashboard — redirigir al panel admin
+  useEffect(() => {
+    if (user && user.email === 'horaciosoriau@gmail.com') {
+      router.replace('/admin')
+    }
+  }, [user])
+
   const tabs = [
     { id: 'overview', icon: '🏠', label: t('Overview', 'Resumen') },
     { id: 'tickets', icon: '🎟', label: t('My tickets', 'Mis boletos') },
