@@ -224,11 +224,23 @@ export default function DashboardPage({ lang, setLang }) {
                       <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
                         🎯 {t('Draw:', 'Sorteo:')} {p.raffles?.draw_date ? new Date(p.raffles.draw_date + 'T12:00:00').toLocaleDateString(lang === 'es' ? 'es-MX' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                       </div>
-                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 6 }}>
                         {(p.ticket_numbers || []).map(n => (
                           <span key={n} style={{ width: 26, height: 26, borderRadius: 4, background: p.status === 'won' ? 'var(--brand)' : '#E6F1FB', color: p.status === 'won' ? '#fff' : '#185FA5', fontSize: 10, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n}</span>
                         ))}
                       </div>
+                      {/* Botón Ver en vivo — solo si la rifa está activa */}
+                      {p.raffles?.status === 'active' && p.raffle_slug && (
+                        <a href={'/draw/' + p.raffle_slug} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          fontSize: 10, fontWeight: 700, padding: '3px 10px',
+                          borderRadius: 8, textDecoration: 'none',
+                          background: 'linear-gradient(135deg, #1A6B3C, #2E8B57)',
+                          color: '#fff', marginTop: 2
+                        }}>
+                          🔴 {lang === 'es' ? 'Ver sorteo en vivo' : 'Watch live draw'}
+                        </a>
+                      )}
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 13, fontWeight: 600 }}>${(p.qty * (p.raffles?.ticket_price || 0)).toFixed(2)} {p.raffles?.currency || 'MXN'}</div>
