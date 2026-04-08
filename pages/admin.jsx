@@ -222,7 +222,13 @@ export default function Admin({ lang, setLang }) {
   const [actionLoading, setActionLoading] = useState({})
   const [earningsPeriod, setEarningsPeriod] = useState('all')
   const [tickets, setTickets] = useState([])
-  const [ticketFilter, setTicketFilter] = useState('all') // all | open | in_progress | resolved // 'all' | '30' | '7'
+  const [ticketFilter, setTicketFilter] = useState('all')
+  const [blastRaffleId, setBlastRaffleId] = useState('')
+  const [blastSubject, setBlastSubject] = useState('')
+  const [blastMessage, setBlastMessage] = useState('')
+  const [blastType, setBlastType] = useState('reminder')
+  const [blastSending, setBlastSending] = useState(false)
+  const [blastResult, setBlastResult] = useState(null) // all | open | in_progress | resolved // 'all' | '30' | '7'
 
   useEffect(() => { checkAdmin() }, [])
 
@@ -315,6 +321,28 @@ export default function Admin({ lang, setLang }) {
         setRegistrations(r => r.map(x => x.id === reg.id ? { ...x, status: action === 'approve' ? 'approved' : 'rejected' } : x))
       }
     } finally { setAction(reg.id, false) }
+  }
+
+  const sendBlast = async () => {
+    if (!blastRaffleId || !blastSubject.trim() || !blastMessage.trim()) return
+    setBlastSending(true)
+    setBlastResult(null)
+    try {
+      const res = await fetch('/api/send-blast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raffleId: blastRaffleId, subject: blastSubject, message: blastMessage, type: blastType })
+      })
+      const data = await res.json()
+      setBlastResult(data)
+      if (data.success) {
+        setBlastSubject('')
+        setBlastMessage('')
+      }
+    } catch (e) {
+      setBlastResult({ error: 'Error al enviar' })
+    }
+    setBlastSending(false)
   }
 
   const updateTicketStatus = async (id, status, notes) => {
@@ -421,6 +449,7 @@ export default function Admin({ lang, setLang }) {
     { id: 'registrations', icon: '📋', label: 'Registros' },
     { id: 'draws', icon: '🎯', label: 'Sorteos' },
     { id: 'support', icon: '🎧', label: 'Soporte' },
+    { id: 'comms', icon: '📣', label: 'Comunicación' },
     { id: 'earnings',      icon: '💰', label: 'Ganancias' },
   ]
 
@@ -1278,6 +1307,163 @@ export default function Admin({ lang, setLang }) {
                     })}
                 </div>
               )}
+            </div>
+          )}
+
+
+          {/* ══════════════════════════════════════════════
+              ── COMUNICACIÓN ──
+          ══════════════════════════════════════════════ */}
+          {activeTab === 'comms' && (
+            <div>
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#111', letterSpacing: '-0.02em' }}>📣 Comunicación masiva</div>
+                <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>
+                  Envía emails a todos los participantes de una rifa
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+
+                {/* Formulario */}
+                <div style={{ background: '#fff', borderRadius: 14, padding: '24px', border: '1px solid #F3F4F6' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 20 }}>✉️ Nuevo mensaje</div>
+
+                  {/* Seleccionar rifa */}
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Rifa destinataria</div>
+                    <select
+                      value={blastRaffleId}
+                      onChange={e => setBlastRaffleId(e.target.value)}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, color: '#374151', background: '#F9FAFB' }}
+                    >
+                      <option value="">— Selecciona una rifa —</option>
+                      {raffles.filter(r => r.status === 'active').map(r => (
+                        <option key={r.id} value={r.id}>
+                          {r.properties?.name || r.slug} · {(r.tickets_sold || 0)} participantes
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Tipo de mensaje */}
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Tipo de mensaje</div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {[
+                        { id: 'reminder', icon: '⏰', label: 'Recordatorio' },
+                        { id: 'live', icon: '🔴', label: 'Sorteo en vivo' },
+                        { id: 'update', icon: '📢', label: 'Actualización' },
+                        { id: 'urgent', icon: '🚨', label: 'Urgente' },
+                      ].map(tp => (
+                        <button key={tp.id} onClick={() => setBlastType(tp.id)} style={{
+                          padding: '6px 12px', borderRadius: 8, border: `1px solid ${blastType === tp.id ? '#6366F1' : '#E5E7EB'}`,
+                          background: blastType === tp.id ? '#EEF2FF' : '#F9FAFB',
+                          color: blastType === tp.id ? '#6366F1' : '#6B7280',
+                          fontSize: 12, fontWeight: 600, cursor: 'pointer'
+                        }}>
+                          {tp.icon} {tp.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Asunto */}
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Asunto del email</div>
+                    <input
+                      type="text"
+                      value={blastSubject}
+                      onChange={e => setBlastSubject(e.target.value)}
+                      placeholder="Ej: El sorteo es mañana — ¡no te lo pierdas!"
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, color: '#374151', background: '#F9FAFB', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  {/* Mensaje */}
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Mensaje</div>
+                    <textarea
+                      value={blastMessage}
+                      onChange={e => setBlastMessage(e.target.value)}
+                      placeholder="Escribe el mensaje que recibirán todos los participantes..."
+                      rows={5}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, color: '#374151', background: '#F9FAFB', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                    />
+                    <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
+                      El nombre del participante y sus números de boleto se agregan automáticamente.
+                    </div>
+                  </div>
+
+                  {/* Resultado */}
+                  {blastResult && (
+                    <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 8, background: blastResult.success ? '#D1FAE5' : '#FEE2E2', border: `1px solid ${blastResult.success ? '#86EFAC' : '#FECACA'}` }}>
+                      {blastResult.success ? (
+                        <div style={{ fontSize: 13, color: '#15803D', fontWeight: 600 }}>
+                          ✅ Enviado a {blastResult.sent} participante{blastResult.sent !== 1 ? 's' : ''}
+                          {blastResult.failed > 0 && ` · ${blastResult.failed} fallaron`}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 13, color: '#DC2626' }}>❌ {blastResult.error}</div>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={sendBlast}
+                    disabled={!blastRaffleId || !blastSubject.trim() || !blastMessage.trim() || blastSending}
+                    style={{
+                      width: '100%', padding: '12px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                      background: (!blastRaffleId || !blastSubject.trim() || !blastMessage.trim()) ? '#F3F4F6' : '#1A6B3C',
+                      color: (!blastRaffleId || !blastSubject.trim() || !blastMessage.trim()) ? '#9CA3AF' : '#fff',
+                    }}
+                  >
+                    {blastSending ? '⏳ Enviando...' : '📣 Enviar a todos los participantes'}
+                  </button>
+                </div>
+
+                {/* Info y plantillas */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+                  {/* Resumen de participantes */}
+                  <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #F3F4F6' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 14 }}>👥 Participantes por rifa activa</div>
+                    {raffles.filter(r => r.status === 'active').length === 0 ? (
+                      <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '16px 0' }}>Sin rifas activas</div>
+                    ) : raffles.filter(r => r.status === 'active').map(r => (
+                      <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #F9FAFB' }}>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{r.properties?.name || r.slug}</div>
+                          <div style={{ fontSize: 10, color: '#9CA3AF' }}>{r.properties?.city} · Sorteo {r.draw_date || '—'}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>{r.tickets_sold || 0}</div>
+                          <div style={{ fontSize: 10, color: '#9CA3AF' }}>participantes</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Plantillas rápidas */}
+                  <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #F3F4F6' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 14 }}>⚡ Plantillas rápidas</div>
+                    {[
+                      { type: 'live', subject: '¡El sorteo es HOY! Entra a verlo en vivo', msg: 'El sorteo de tu rifa se realizará hoy. Entra al link para verlo en vivo y ser el primero en saber si ganaste. ¡Mucha suerte!' },
+                      { type: 'reminder', subject: 'Tu sorteo es mañana', msg: 'Queremos recordarte que el sorteo de tu rifa es mañana. Asegúrate de estar pendiente para conocer el resultado. ¡Buena suerte!' },
+                      { type: 'update', subject: 'Actualización importante sobre tu rifa', msg: 'Tenemos una actualización importante sobre la rifa en la que participas. Por favor, revisa los detalles en la plataforma.' },
+                    ].map((tpl, i) => (
+                      <button key={i} onClick={() => { setBlastType(tpl.type); setBlastSubject(tpl.subject); setBlastMessage(tpl.msg) }} style={{
+                        width: '100%', textAlign: 'left', padding: '10px 12px', marginBottom: 6, borderRadius: 8,
+                        border: '1px solid #E5E7EB', background: '#F9FAFB', cursor: 'pointer',
+                        fontSize: 12, color: '#374151', lineHeight: 1.5
+                      }}>
+                        <div style={{ fontWeight: 600, marginBottom: 2 }}>{tpl.subject}</div>
+                        <div style={{ color: '#9CA3AF', fontSize: 11 }}>{tpl.msg.slice(0, 60)}...</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
