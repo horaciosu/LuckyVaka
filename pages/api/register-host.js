@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Lucky Vaka <onboarding@resend.dev>',
+        from: 'LuckyVaka <noreply@luckyvaka.com>',
         to: ['luckyvaka.hola@gmail.com'],
         subject: `🏠 Nueva solicitud de anfitrión: ${name}`,
         text: body,
